@@ -1,4 +1,27 @@
+import os
+
+# Load .env if present for SWITCH compatibility
+def _load_env(path: str = ".env"):
+    if not os.path.exists(path):
+        return
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            for raw in f.readlines():
+                line = raw.strip()
+                if not line or line.startswith("#") or "=" not in line:
+                    continue
+                key, value = line.split("=", 1)
+                key = key.strip()
+                value = value.strip().strip('"').strip("'")
+                if key and key not in os.environ:
+                    os.environ[key] = value
+    except Exception:
+        pass
+
+_load_env()
+
 import telebot
+from telebot.types import BotCommand
 import subprocess
 import os
 import threading
@@ -16,8 +39,8 @@ from telebot import apihelper
 import shlex
 import shutil
 import tempfile
-from help_texts import COMMAND_HELP
-from paths_config import PATHS, load_paths, save_paths
+from app.help_texts import COMMAND_HELP
+from app.paths_config import PATHS, load_paths, save_paths
 from file_monitor import FileMonitor
 
 # таймауты
@@ -37,6 +60,17 @@ def is_user_allowed(user_id):
 PATHS = load_paths()
 
 bot = telebot.TeleBot(TOKEN)
+
+# Set bot commands for legacy telebot mode
+try:
+    from app.help_texts import COMMAND_HELP
+    commands = [
+        BotCommand(cmd, (data.get('description') or '')[:256])
+        for cmd, data in sorted(COMMAND_HELP.items(), key=lambda x: x[0])
+    ]
+    bot.set_my_commands(commands)
+except Exception:
+    pass
 active_processes = {}
 cmd_sessions = {}  # Сессии командной строки: {chat_id: session_dict}
 upload_requests = {}  # Для отслеживания запросов на загрузку: {chat_id: target_path}
