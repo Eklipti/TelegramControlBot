@@ -1,8 +1,11 @@
-import numpy as np
+# SPDX-FileCopyrightText: 2025 ControlBot contributors
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 import cv2
+import numpy as np
 import pyautogui
 from aiogram.filters import Command
-from aiogram.types import Message, BufferedInputFile
+from aiogram.types import BufferedInputFile, Message
 
 from ..router import router
 from ..state import mouse_positions

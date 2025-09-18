@@ -1,8 +1,11 @@
-from aiogram.types import Message
-from aiogram.filters import Command
+# SPDX-FileCopyrightText: 2025 ControlBot contributors
+# SPDX-License-Identifier: AGPL-3.0-or-later
 
-from ..router import router
+from aiogram.filters import Command
+from aiogram.types import Message
+
 from ..help_texts import COMMAND_HELP
+from ..router import router
 
 
 @router.message(Command("start"))
@@ -18,7 +21,9 @@ async def handle_start(message: Message) -> None:
         "• Управление мышью и клавиатурой\n\n"
         "📚 Для просмотра всех команд используйте /help\n"
         "ℹ️ Для справки по конкретной команде: /help &lt;команда&gt;\n\n"
-        "⚠️ <b>Внимание:</b> Используйте бота только на доверенных устройствах!"
+        "⚠️ <b>Внимание:</b> Используйте бота только на доверенных устройствах!\n"
+        "⚖️ <b>Правовое предупреждение:</b> Бот предназначен для администрирования собственных машин. "
+        "Использование без явного разрешения владельца запрещено."
     )
     await message.answer(welcome_text)
 
@@ -52,9 +57,11 @@ async def handle_help(message: Message) -> None:
     categories = {
         "Процессы": ["on", "off", "reload", "processes"],
         "Система": ["tasklist"],
+        "Пути": ["add_path", "list_paths", "del_path", "add_default_path", "list_default_paths", "del_default_path", "reload_paths"],
         "Файлы": ["upload", "download", "cut", "find"],
         "Мониторинг": ["monitor_add", "monitor_remove", "monitor_list", "monitor_stop"],
-        "Удаленное управление": ["cmd", "newcmd", "end_session", "rdp_start", "rdp_stop"],
+        "Командная строка": ["cmd_session_start", "cmd_session_stop", "cmd", "cmd_wait", "cmdupdate", "cmd_dump"],
+        "Удаленное управление": ["rdp_start", "rdp_stop"],
         "Мышь": [
             "mouse_move",
             "mouse_move_rel",
@@ -63,10 +70,9 @@ async def handle_help(message: Message) -> None:
             "mouse_speed",
             "mouse_click",
             "mouse_scroll",
-            "screen_mark",
         ],
         "Клавиатура": ["key", "type"],
-        "Экран": ["screen"],
+        "Экран": ["screen", "screen_find", "screen_mark"],
         "Прочее": ["start", "help", "cancel"],
     }
 

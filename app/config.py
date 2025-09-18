@@ -1,13 +1,15 @@
+# SPDX-FileCopyrightText: 2025 ControlBot contributors
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 import os
 from dataclasses import dataclass
-from typing import List
 
 
 def load_env(path: str = ".env") -> None:
     if not os.path.exists(path):
         return
     try:
-        with open(path, "r", encoding="utf-8") as f:
+        with open(path, encoding="utf-8") as f:
             for raw in f.readlines():
                 line = raw.strip()
                 if not line or line.startswith("#"):
@@ -26,13 +28,13 @@ def load_env(path: str = ".env") -> None:
 @dataclass
 class Settings:
     token: str
-    allowed_user_ids: List[int]
+    allowed_user_ids: list[int]
 
     @staticmethod
     def load() -> "Settings":
         token = os.environ.get("TELEGRAM_BOT_TOKEN", "")
         ids_raw = os.environ.get("ALLOWED_USER_IDS", "")
-        allowed: List[int] = []
+        allowed: list[int] = []
         for part in ids_raw.replace(";", ",").split(","):
             part = part.strip()
             if not part:
@@ -44,7 +46,7 @@ class Settings:
         return Settings(token=token, allowed_user_ids=allowed)
 
 
-def is_user_allowed(user_id: int, allowed_users: List[int]) -> bool:
+def is_user_allowed(user_id: int, allowed_users: list[int]) -> bool:
     return user_id in allowed_users
 
 

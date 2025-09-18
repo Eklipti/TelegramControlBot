@@ -1,22 +1,30 @@
-import os
+# SPDX-FileCopyrightText: 2025 ControlBot contributors
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 import psutil
 from aiogram.filters import Command
-from aiogram.types import Message, BufferedInputFile
+from aiogram.types import BufferedInputFile, Message
 
 from ..router import router
-from ..config import get_encoding
 
 
 @router.message(Command("reload"))
 async def handle_reload(message: Message) -> None:
-    try:
-        await message.answer("🔄 Система перезагружается...")
-        if os.name == 'nt':
-            os.system("shutdown /r /t 0")
-        else:
-            os.system("sudo reboot")
-    except Exception as e:
-        await message.answer(f"⚠️ Ошибка перезагрузки: {e}")
+    from ..security import DANGEROUS_ACTIONS, get_confirmation_manager
+
+    manager = get_confirmation_manager()
+    action_config = DANGEROUS_ACTIONS["reload"]
+
+    await manager.create_confirmation(
+        chat_id=message.chat.id,
+        action_type="reload",
+        action_data={
+            "action_type": "reload",
+            "action_data": {}
+        },
+        warning_message=action_config["warning"],
+        timeout=action_config["timeout"]
+    )
 
 
 @router.message(Command("tasklist"))

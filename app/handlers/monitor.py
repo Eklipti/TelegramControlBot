@@ -1,10 +1,13 @@
+# SPDX-FileCopyrightText: 2025 ControlBot contributors
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 import os
+
 from aiogram.filters import Command
 from aiogram.types import Message
 
 from ..router import router
 from ..services.monitor import FileMonitor
-
 
 monitor = FileMonitor()
 

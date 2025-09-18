@@ -1,225 +1,150 @@
+# ControlBot - Telegram Bot for Remote PC Control
 
-# ControlBot (Windows) — Telegram‑бот удалённого управления ПК  
-_Aiogram 3 (новая версия) + Legacy TeleBot (совместимость)_
+A powerful Telegram bot for remote computer management through Telegram using Aiogram 3.
 
-> Этот репозиторий содержит два режима работы: **новый aiogram‑бот** (рекомендуется) и **устаревший telebot‑бот**. Переключение режимов выполняется через переменную окружения `SWITCH` (`new` или `old`).
+## ⚠️ Important Security Notice
 
----
+**USE THIS BOT ONLY ON YOUR OWN DEVICES AND WITH PROPER PERMISSION!**
 
-## 📌 Возможности (TL;DR)
+This bot provides remote control capabilities that can be potentially dangerous if misused. Only use it on:
+- Your own personal computers
+- Devices you have explicit permission to control
+- Trusted networks and environments
 
-- **Запуск/остановка программ и скриптов**: `/on`, `/off`, список активных — `/processes`, сводка процессов — `/tasklist`, перезагрузка ОС — `/reload`  
-- **Удалённая командная строка**: `/cmd`, `/newcmd`, `/end_session` — интерактивная сессия с потоковым выводом и авто‑обновлением сообщения
-- **«RDP‑лайт» (поток скриншотов):** `/rdp_start [fps 1..10]`, `/rdp_stop`
-- **Снимок экрана и поиск по образцу:** `/screen`, `/screen_find` (вышлите картинку, будет найдено на экране через шаблон‑матчинг)
-- **Мышь и клавиатура:** `/mouse_move`, `/mouse_click`, `/mouse_scroll`, `/mouse_speed`, сохранение/прыжок к позициям `/mouse_save`/`/mouse_goto`, клавиши `/key`, набор текста `/type`
-- **Файлы:** загрузка из TG на ПК `/upload`, скачивание с ПК в TG `/download`, вырезать/переместить `/cut`, поиск файлов `/find name: size: ext:`
-- **Мониторинг каталогов:** `/monitor_add`, `/monitor_remove`, `/monitor_list`, `/monitor_stop`
-- **Профильная безопасность:** доступ только для указанных `ALLOWED_USER_IDS`; при старте/остановке — уведомления админам
+**Never use this bot on devices you don't own or without proper authorization.**
 
-Полный справочник команд доступен в боте: `/help`, или `/help <команда>`.
+## ⚖️ Legal & Ethical Use
 
----
+**This bot is intended for administering your own machines only.**
 
-## 🏗️ Структура проекта
+### ✅ Permitted Use
+- **Personal devices** you own and control
+- **Work computers** with explicit employer permission
+- **Family devices** with explicit owner consent
+- **Educational purposes** in controlled environments
 
+### ❌ Prohibited Use
+- **Unauthorized access** to any system without explicit permission
+- **Corporate networks** without written authorization
+- **Public or shared computers** without owner consent
+- **Any malicious activities** or unauthorized surveillance
+- **Violation of local laws** or regulations
+
+### 🚨 Legal Disclaimer
+- **You are solely responsible** for your use of this software
+- **Unauthorized access** to computer systems is illegal in most jurisdictions
+- **Always obtain explicit permission** before using on any device
+- **Respect privacy and security** of others
+- **Use at your own risk** - developers assume no liability
+
+**By using this software, you agree to use it ethically and legally.**
+
+## 🚀 Quick Start
+
+### Prerequisites
+- Python 3.11 or higher
+- Windows operating system
+- Telegram Bot Token (get one from [@BotFather](https://t.me/BotFather))
+
+### Installation
+
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/Eklipti/TelegramControlBot.git
+   cd TelegramControlBot
+   ```
+
+2. **Create virtual environment**
+   ```bash
+   python -m venv .venv
+   ```
+
+3. **Activate virtual environment**
+   ```bash
+   # Windows
+   .\.venv\Scripts\activate
+   
+   # Linux/macOS
+   source .venv/bin/activate
+   ```
+
+4. **Install dependencies**
+   ```bash
+   pip install -r requirements.txt
+   ```
+
+5. **Configure the bot**
+   - Create `.env` file based on `.env.example`
+   - Add your Telegram Bot Token
+   - Configure allowed user IDs
+
+6. **Run the bot**
+   ```bash
+   python main.py
+   ```
+   
+   Or use the provided batch file:
+   ```bash
+   ControlBot.bat
+   ```
+
+## 📚 Documentation
+
+- **[Russian Documentation](docs/README_ru.md)** - Detailed installation and usage guide
+- **[Command Reference](docs/all_commands.md)** - Complete list of all commands with examples
+- **[Future Plans](docs/FUTURE.md)** - Upcoming features and improvements
+
+## 🔧 Features
+
+- **System Control**: Shutdown, restart, sleep, hibernate
+- **File Management**: Upload, download, browse files
+- **Process Management**: View and terminate processes
+- **Screen Control**: Take screenshots, remote desktop
+- **Security**: User authentication and private chat only
+- **Monitoring**: System status and performance metrics
+
+## 🎯 User Experience
+
+- **Auto-command registration**: All commands automatically appear in Telegram menu
+- **Startup notifications**: Users receive "🟢 Bot started" notification
+- **Shutdown notifications**: Users receive "⛔ Bot stopped" notification
+- **Intuitive interface**: `/start` for welcome, `/help` for command list
+- **Context-aware help**: `/help <command>` for detailed information
+
+## 📄 License
+
+This project is licensed under the **GNU Affero General Public License v3.0 or later (AGPL-3.0-or-later)**.
+
+Authors: Eklipti, Nlan_Cat
+
+See [LICENSE](LICENSE) for the complete license text.
+
+## 🧪 Testing
+
+The project includes automated testing via GitHub Actions:
+
+- **Code Quality**: Ruff linting and MyPy type checking
+- **Smoke Tests**: Basic functionality and import validation
+- **Compatibility**: Python 3.11 and 3.12 support
+
+Run tests locally:
+```bash
+python run_tests.py
 ```
-ControlBot/
-├─ app/                         # новая версия на aiogram 3
-│  ├─ handlers/                 # хендлеры команд
-│  │  ├─ help.py                # список и справка команд
-│  │  ├─ processes.py           # /on /off /processes
-│  │  ├─ system.py              # /tasklist /reload
-│  │  ├─ cmd.py                 # /cmd /newcmd /end_session (+потоковый вывод)
-│  │  ├─ rdp.py                 # /rdp_start /rdp_stop (поток скриншотов)
-│  │  ├─ screen.py              # /screen /screen_find
-│  │  ├─ mouse_keyboard.py      # /mouse_* /key /type
-│  │  ├─ files.py               # /upload /download /cut
-│  │  ├─ find_cmd.py            # /find name:/size:/ext:
-│  │  ├─ monitor.py             # мониторинг каталогов
-│  │  ├─ paths.py               # /add_path /list_paths /del_path
-│  │  └─ docs_photos.py         # приём файлов/фото, сохранение/отправка
-│  ├─ services/
-│  │  ├─ lifecycle.py           # меню команд, нотификации о старте/стопе
-│  │  └─ monitor.py             # реализация FileMonitor
-│  ├─ app.py                    # создание Bot/Dispatcher, запуск polling
-│  ├─ config.py                 # Settings, get_encoding (cp866 для Windows)
-│  ├─ help_texts.py             # текстовая справка команд для /help и меню
-│  ├─ paths_config.py           # дефолтный набор путей + paths_config.json
-│  ├─ router.py                 # общий Router
-│  └─ state.py                  # in‑memory состояния (upload/download и т.п.)
-├─ ControlBot.py                # legacy‑версия на pyTelegramBotAPI
-├─ file_monitor.py              # legacy FileMonitor
-├─ main.py                      # загрузка .env, SWITCH=new|old, диспетчер режимов
-├─ ControlBot.bat               # запуск на Windows (двойной клик/автостарт)
-├─ .env.example                 # пример настроек
-├─ paths_config.json            # пользовательские пути (создаётся при работе)
-└─ requirements.txt             # зависимости
-```
+
+## 🤝 Contributing
+
+Contributions are welcome! Please read the license terms and ensure compliance with AGPL-3.0-or-later requirements.
+
+Before submitting a pull request:
+1. Run the test suite: `python run_tests.py`
+2. Ensure all tests pass
+3. Follow the existing code style
+
+## 📞 Support
+
+For questions and support, please open an issue on the [GitHub repository](https://github.com/Eklipti/TelegramControlBot).
 
 ---
 
-## ⚙️ Установка (Windows 10/11)
-
-1) **Установите Python 3.11+** и добавьте его в PATH.  
-2) Клонируйте проект и создайте окружение:
-```powershell
-python -m venv .venv
-.\.venv\Scripts\activate
-pip install -r requirements.txt
-```
-3) Создайте настройку окружения:
-```powershell
-copy .env.example .env
-# отредактируйте .env
-```
-Минимум нужно указать:
-```ini
-SWITCH=new                       # new = aiogram, old = legacy
-TELEGRAM_BOT_TOKEN=...           # токен вашего бота
-ALLOWED_USER_IDS=111111111,222222222
-```
-4) **Запуск** (любой вариант):
-```powershell
-python main.py
-# или
-ControlBot.bat
-```
-
-> Aiogram‑режим использует polling и хранение состояний в памяти (MemoryStorage). Webhook не настраивается из коробки.
-
----
-
-## 🔒 Безопасность
-
-- Доступ к командам ограничивается фильтром `AllowedUserFilter` — **бот отвечает только ID из `ALLOWED_USER_IDS`**.  
-- Уведомления «🟢 Бот запущен»/«⛔ Бот остановлен» приходят всем разрешённым пользователям.  
-- Команды «управления ПК» потенциально опасны. Рекомендуется:
-  - запускать бота **только на доверенной машине**;
-  - использовать отдельного локального пользователя Windows;
-  - не добавлять лишних админов в `ALLOWED_USER_IDS`;
-  - избегать публичных чатов.
-
----
-
-## 🧰 Команды (кратко)
-
-> Полная справка в `/help` и `/help <команда>` (бот отдаёт развернутые описания и примеры).
-
-### Процессы и система
-- `/on [hidden:|admin:] <имя_или_путь> [аргументы]` — запустить файл/скрипт (знает PATH и зарегистрированные “имена”). При `admin:` в Windows будет UAC‑prompt.
-- `/off <имя|all>` — остановить процесс(ы) из списка активных (legacy) / закрыть отслеживаемые (в новой версии список активных поддерживается командой ниже).
-- `/processes` — показать активные процессы, запущенные ботом (aiogram и legacy).
-- `/tasklist` — сводка процессов из `psutil` + детальный отчёт файлом.
-- `/reload` — перезагрузка ОС.
-
-### Пути (быстрый запуск)
-- `/add_path <имя> <путь>` — сохранить путь под “именем”.
-- `/list_paths` — показать все сохранённые пути.
-- `/del_path <имя>` — удалить сохранённый путь.
-
-### Командная строка (интерактив)
-- `/cmd <команда>` — выполнить, показать поток вывода в обновляемом сообщении.
-- `/newcmd <команда>` — старт новой сессии, старая прерывается.
-- `/end_session` — завершить текущую сессию.
-- Отправка **обычного текстового сообщения** в чат во время активной сессии отправляет строку в STDIN процесса.
-
-> На Windows вывод декодируется в `cp866` (см. `get_encoding`), чтобы корректно отображать кириллицу.
-
-### RDP‑лайт (поток изображений)
-- `/rdp_start [fps]` — периодически делает скриншоты и редактирует сообщение фото‑кадрами (1..10 FPS).  
-- `/rdp_stop` — остановить.
-
-> Реальный телеграм‑лимит на обновления и сеть влияет на частоту; при превышении ловится `Too Many Requests`, поток замедляется.
-
-### Экран, мышь, клавиатура
-- `/screen` — скриншот всего экрана.
-- `/screen_find` — бот ждёт картинку‑образец и попытается найти её на экране (OpenCV template matching) и подсветить.
-- `/mouse_move x y`, `/mouse_move_rel dx dy`, `/mouse_click [left|right|middle]`, `/mouse_scroll N`, `/mouse_speed S` (0.1 быстро — 1.0 медленно), `/mouse_save name`, `/mouse_goto name`.
-- `/key ctrl+shift+esc` (или `/key enter`) — «горячие» клавиши.
-- `/type ваш_текст` — напечатать текст.
-
-### Файлы, поиск, мониторинг
-- `/upload <путь_к_файлу_или_папке>` — после команды пришлите документ/фото, бот сохранит по указанному пути (создаёт директории).
-- `/download <путь_к_файлу>` — бот отправит файл в чат.
-- `/cut <src> <dst>` — переместить файл/папку.
-- `/find name:report* size:+1M ext:docx,pdf` — поиск по имени/размеру/расширениям (результаты при большом объёме приходят файлом).
-- Мониторинг: `/monitor_add <путь>`, `/monitor_remove <путь>`, `/monitor_list`, `/monitor_stop` — отслеживание изменений в каталогах с периодическим опросом.
-
----
-
-## 🧪 Быстрый «смок‑тест»
-
-1. `/help` — видите категории и описания команд.  
-2. `/screen` — приходит скриншот.  
-3. `/cmd whoami` (Windows: `/cmd ver`) — придёт поток вывода и финальный статус.  
-4. `/on notepad.exe` → `/processes` → `/off all`.  
-5. `/rdp_start 2` → убедитесь, что кадры обновляются → `/rdp_stop`.  
-6. `/upload C:\Temp\` → пришлите файл → проверьте, что он появился.  
-7. `/monitor_add C:\Temp` → создайте файл в папке → получите уведомление.
-
-> Хотите автопроверку всех команд — добавьте вспомогательный хендлер, который итеративно вызовет `/help <cmd>` по ключам из `COMMAND_HELP` и соберёт статусы (опционально).
-
----
-
-## 🧩 Конфигурация и расширение
-
-- **.env** — токен и список разрешённых пользователей. Также `SWITCH=new|old` определяет режим (aiogram/legacy).
-- **Меню команд** формируется автоматически из `app/help_texts.py` при старте.
-- **Добавление команды**: создайте модуль в `app/handlers/`, зарегистрируйте хендлер через общий `router`, добавьте текст помощи в `help_texts.py` — команда появится в `/help` и в меню.
-- **Пути запуска**: редактируйте `paths_config.json` или работайте командами `/add_path`/`/del_path`.
-
----
-
-## 🪟 Автозапуск в Windows (2 способа)
-
-**A. Планировщик заданий (рекомендуется):**
-1. Открыть «Планировщик заданий» → «Создать задачу…»  
-2. «Общие»: запуск от имени пользователя, «Выполнять с наивысшими правами» — по желанию.  
-3. «Триггеры»: _При входе в систему_ (либо _При запуске_).  
-4. «Действия»: _Запуск программы_ → `ControlBot.bat`.  
-5. «Условия/Параметры»: отключите «Останавливать, если работает дольше…» и т.п.
-
-**B. Папка «Автозагрузка»:** Win+R → `shell:startup` → ярлык на `ControlBot.bat`.
-
----
-
-## ❗ Известные ограничения и примечания
-
-- **Только интерактивная сессия**: скриншоты/управление мышью/клавиатурой работают в активной пользовательской сессии Windows (не «служба»).  
-- **UAC**: флаг `admin:` в `/on` требует подтверждения UAC; из бота это не обходится.  
-- **Лимиты Telegram**: поток редактирования фото при `/rdp_start` может замедляться из‑за rate‑limit.  
-- **Кодировка Windows‑консоли**: вывод в `/cmd` декодируется как `cp866` — это нормально для локализации RU.  
-- **Поиск `/find`**: на Windows реализация использует Python/OS и может отличаться от GNU `find`; для больших дисков поиск может занимать время.
-
----
-
-## 🐍 Зависимости
-
-- Telegram: `aiogram>=3,<4`, `pyTelegramBotAPI>=4.14,<5`  
-- Автоматизация/экран: `Pillow`, `pyautogui`, `opencv-python`, `numpy`  
-- Система: `psutil`
-
-См. `requirements.txt`.
-
----
-
-## 📄 Лицензия
-
-Укажите лицензию (например, MIT) или добавьте `LICENSE` в корень репозитория.
-
----
-
-## 🙋 FAQ
-
-**Q: Как быстро переключиться на legacy‑режим?**  
-A: В `.env` установить `SWITCH=old` и запустить `main.py`/`ControlBot.bat`.
-
-**Q: Бот молчит в чате/группе?**  
-A: Проверьте, что ваш Telegram ID добавлен в `ALLOWED_USER_IDS`, и бот не ограничен в правах чата. Рекомендован **личный чат**, не группы.
-
-**Q: Нужно больше безопасности.**  
-A: Держите бота за NAT/VPN, используйте отдельную учётку Windows и не запускайте его как SYSTEM.
-
-**Q: Можно ли работать на Linux?**  
-A: Большинство команд кросс‑платформенно, но основной таргет — Windows (скриншоты/пиреферии на X/Wayland могут потребовать доработок).
+**Remember: Use responsibly and only on devices you own or have permission to control!**

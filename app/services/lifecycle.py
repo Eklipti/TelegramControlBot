@@ -1,3 +1,6 @@
+# SPDX-FileCopyrightText: 2025 ControlBot contributors
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 from aiogram import Bot
 from aiogram.types import BotCommand
 

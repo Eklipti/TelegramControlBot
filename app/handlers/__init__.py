@@ -1,16 +1,28 @@
-from . import help
-from . import paths
-from . import cancel
-from . import monitor
-from . import files
-from . import screen
-from . import mouse_keyboard
-from . import system
-from . import rdp
-from . import processes
-from . import find_cmd
-from . import cmd
-from . import docs_photos
+#
+# License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+#
+# SPDX-FileCopyrightText: 2025 ControlBot contributors
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+from . import (
+    cancel,
+    cmd,
+    docs_photos,
+    files,
+    find_cmd,
+    help,
+    monitor,
+    mouse_keyboard,
+    paths,
+    processes,
+    rdp,
+    screen,
+    security,
+    system,
+)
 
 
 

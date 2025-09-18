@@ -1,12 +1,14 @@
+# SPDX-FileCopyrightText: 2025 ControlBot contributors
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 import os
-import sys
 
 
 def _load_env(path: str = ".env") -> None:
     if not os.path.exists(path):
         return
     try:
-        with open(path, "r", encoding="utf-8") as f:
+        with open(path, encoding="utf-8") as f:
             for raw in f.readlines():
                 line = raw.strip()
                 if not line or line.startswith("#") or "=" not in line:
@@ -22,16 +24,9 @@ def _load_env(path: str = ".env") -> None:
 
 def main() -> None:
     _load_env()
-    mode = os.environ.get("SWITCH", "new").lower()
-    if mode == "old":
-        # run legacy telebot script
-        exec(compile(open("ControlBot.py", "rb").read(), "ControlBot.py", "exec"), {
-            "__name__": "__main__"
-        })
-    else:
-        # run aiogram app
-        from app.app import main as run_aiogram
-        run_aiogram()
+    # run aiogram app
+    from app.app import main as run_aiogram
+    run_aiogram()
 
 
 if __name__ == "__main__":

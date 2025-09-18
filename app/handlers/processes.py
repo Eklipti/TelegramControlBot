@@ -1,16 +1,19 @@
+# SPDX-FileCopyrightText: 2025 ControlBot contributors
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+import logging
 import os
 import shlex
+import shutil
 import subprocess
 import sys
-import time
-import logging
+
 from aiogram import F
 from aiogram.filters import Command
-from aiogram.types import Message, InlineKeyboardMarkup, InlineKeyboardButton, CallbackQuery
+from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message
 
-from ..router import router
 from ..paths_config import PATHS, save_paths
-
+from ..router import router
 
 active_processes: dict[str, subprocess.Popen] = {}
 
@@ -63,18 +66,47 @@ async def handle_on(message: Message) -> None:
             file_path = PATHS.get(input_arg)
         process_key = input_arg
     else:
-        # Сначала проверяем, есть ли файл в PATH (исполняемые файлы)
-        found = False
-        for path_dir in os.environ.get("PATH", "").split(os.pathsep):
-            candidate = os.path.join(path_dir.strip('"'), input_arg)
-            if os.path.exists(candidate):
-                file_path = candidate
-                custom_path = True
-                process_key = os.path.abspath(file_path)
-                found = True
-                new_path_found = True
-                break
-        
+        # Сначала используем shutil.which() для поиска в PATH (наиболее надежный способ)
+        found_path = shutil.which(input_arg)
+        if found_path:
+            file_path = found_path
+            custom_path = True
+            process_key = os.path.abspath(file_path)
+            found = True
+            new_path_found = True
+        else:
+            # Если shutil.which() не сработал, пробуем ручной поиск
+            found = False
+            for path_dir in os.environ.get("PATH", "").split(os.pathsep):
+                if not path_dir.strip():
+                    continue
+                candidate = os.path.join(path_dir.strip('"'), input_arg)
+                if os.path.exists(candidate):
+                    file_path = candidate
+                    custom_path = True
+                    process_key = os.path.abspath(file_path)
+                    found = True
+                    new_path_found = True
+                    break
+
+            # Если не найден, пробуем с расширениями .exe, .bat, .cmd (Windows)
+            if not found and os.name == 'nt':
+                for ext in ['.exe', '.bat', '.cmd']:
+                    if not input_arg.lower().endswith(ext):
+                        for path_dir in os.environ.get("PATH", "").split(os.pathsep):
+                            if not path_dir.strip():
+                                continue
+                            candidate = os.path.join(path_dir.strip('"'), input_arg + ext)
+                            if os.path.exists(candidate):
+                                file_path = candidate
+                                custom_path = True
+                                process_key = os.path.abspath(file_path)
+                                found = True
+                                new_path_found = True
+                                break
+                        if found:
+                            break
+
         # Если не найден в PATH, проверяем как путь к файлу
         if not found:
             if not os.path.isabs(input_arg):
@@ -88,14 +120,14 @@ async def handle_on(message: Message) -> None:
                 else:
                     # Если не найден, делаем абсолютным относительно рабочей директории
                     input_arg = os.path.abspath(input_arg)
-            
+
             if not found and os.path.exists(input_arg):
                 file_path = input_arg
                 custom_path = True
                 process_key = os.path.abspath(file_path)
                 new_path_found = True
                 found = True
-        
+
         if not found:
             await message.answer(f"❌ Файл не найден: {input_arg}")
             return
@@ -211,27 +243,24 @@ async def handle_off(message: Message) -> None:
 
     target = args[1].strip()
     if target.lower() == "all":
-        stopped: list[str] = []
-        failed: list[str] = []
-        for name, proc in list(active_processes.items()):
-            if proc.poll() is None:
-                try:
-                    if os.name == 'nt':
-                        subprocess.call(f'taskkill /F /T /PID {proc.pid}', shell=True)
-                    else:
-                        proc.terminate()
-                    stopped.append(name)
-                except Exception as e:
-                    logging.exception(f"Ошибка остановки процесса {name}")
-                    failed.append(f"{name}: {e}")
-                finally:
-                    active_processes.pop(name, None)
-        response = "⛔ Остановлены:\n" + ("\n".join(stopped) if stopped else "ℹ️ Нет процессов для остановки")
-        if failed:
-            response += "\n\n❌ Ошибки:\n" + "\n".join(failed)
-        await message.answer(response)
+        from ..security import DANGEROUS_ACTIONS, get_confirmation_manager
+
+        manager = get_confirmation_manager()
+        action_config = DANGEROUS_ACTIONS["process_stop_all"]
+
+        await manager.create_confirmation(
+            chat_id=message.chat.id,
+            action_type="process_stop_all",
+            action_data={
+                "action_type": "process_stop_all",
+                "action_data": {"target": "all"}
+            },
+            warning_message=action_config["warning"],
+            timeout=action_config["timeout"]
+        )
         return
 
+    # Проверяем, существует ли процесс
     matched_proc: subprocess.Popen | None = None
     matched_name: str | None = None
     if target.isdigit():
@@ -255,19 +284,23 @@ async def handle_off(message: Message) -> None:
         active_processes.pop(matched_name, None)
         await message.answer(f"ℹ️ Процесс '{matched_name}' уже завершен")
         return
-    try:
-        if os.name == 'nt':
-            subprocess.call(f'taskkill /F /T /PID {matched_proc.pid}', shell=True)
-            time.sleep(1)
-            if matched_proc.poll() is None:
-                matched_proc.kill()
-        else:
-            matched_proc.terminate()
-        active_processes.pop(matched_name, None)
-        await message.answer(f"⛔ Процесс '{matched_name}' (PID: {matched_proc.pid}) остановлен")
-    except Exception as e:
-        logging.exception(f"Ошибка остановки процесса {matched_name}")
-        await message.answer(f"⚠️ Ошибка остановки: {e}")
+
+    from ..security import DANGEROUS_ACTIONS, get_confirmation_manager
+
+    manager = get_confirmation_manager()
+    action_config = DANGEROUS_ACTIONS["process_stop"]
+
+    await manager.create_confirmation(
+        chat_id=message.chat.id,
+        action_type="process_stop",
+        action_data={
+            "action_type": "process_stop",
+            "action_data": {"target": target},
+            "target": target
+        },
+        warning_message=action_config["warning"].format(action_data=f"Остановка процесса: {matched_name} (PID: {matched_proc.pid})"),
+        timeout=action_config["timeout"]
+    )
 
 
 @router.callback_query(F.data.startswith('save_path'))

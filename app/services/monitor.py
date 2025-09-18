@@ -1,17 +1,19 @@
+# SPDX-FileCopyrightText: 2025 ControlBot contributors
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 import asyncio
 import os
-from typing import Dict, Set, Tuple, List
 
 from aiogram import Bot
 
 
 class FileMonitor:
     def __init__(self) -> None:
-        self._paths: Set[str] = set()
-        self._last_state: Dict[str, Tuple[float, int]] = {}
+        self._paths: set[str] = set()
+        self._last_state: dict[str, tuple[float, int]] = {}
         self._task: asyncio.Task | None = None
         self._lock = asyncio.Lock()
-        self._subscribers: Set[int] = set()
+        self._subscribers: set[int] = set()
 
     async def start(self, bot: Bot, chat_id: int) -> None:
         self._subscribers.add(chat_id)
@@ -44,7 +46,7 @@ class FileMonitor:
                 return True
         return False
 
-    async def get_paths(self) -> List[str]:
+    async def get_paths(self) -> list[str]:
         async with self._lock:
             return list(self._paths)
 
@@ -54,7 +56,7 @@ class FileMonitor:
                 await asyncio.sleep(5)  # Уменьшено с 10 до 5 секунд
                 async with self._lock:
                     paths = list(self._paths)
-                current_state: Dict[str, Tuple[float, int]] = {}
+                current_state: dict[str, tuple[float, int]] = {}
 
                 for path in paths:
                     if not os.path.exists(path):
@@ -83,9 +85,9 @@ class FileMonitor:
                     self._last_state = current_state
                     continue
 
-                changed: List[str] = []
-                created: List[str] = []
-                deleted: List[str] = []
+                changed: list[str] = []
+                created: list[str] = []
+                deleted: list[str] = []
 
                 for path, info in current_state.items():
                     if path in self._last_state:
@@ -116,7 +118,7 @@ class FileMonitor:
                                 message_parts.append("📁 ➖ <b>Удалены:</b>\n" + "\n".join(f"• {p}" for p in deleted[:10]))
                                 if len(deleted) > 10:
                                     message_parts.append(f"... и еще {len(deleted) - 10} файлов")
-                            
+
                             if message_parts:
                                 message = "\n\n".join(message_parts)
                                 await bot.send_message(user_id, message)

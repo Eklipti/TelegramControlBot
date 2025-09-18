@@ -1,12 +1,16 @@
+# SPDX-FileCopyrightText: 2025 ControlBot contributors
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 import asyncio
 import os
-import time
 import subprocess
-from aiogram.filters import Command
-from aiogram.types import Message, BufferedInputFile
+import time
 
-from ..router import router
+from aiogram.filters import Command
+from aiogram.types import BufferedInputFile, Message
+
 from ..config import get_encoding
+from ..router import router
 
 
 @router.message(Command("find"))
@@ -133,7 +137,7 @@ async def handle_find(message: Message) -> None:
 
             if files:
                 duration_ms = int((time.time() - started_at) * 1000)
-                stderr_lines = [l for l in (stderr_text or "").split('\n') if l.strip()]
+                stderr_lines = [line for line in (stderr_text or "").split('\n') if line.strip()]
                 summary_lines = [
                     "Search summary:",
                     f"- Root: {root_dir}",

@@ -1,34 +1,53 @@
+# SPDX-FileCopyrightText: 2025 ControlBot contributors
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 import json
 import os
 
-DEFAULT_PATHS = {
-    "EvilBot_ALT": r"C:\Users\TAKERO\Downloads\EvilBot_Dev3\EvilBot_ALT.py",
-    "EvilBot": r"C:\Users\TAKERO\Downloads\EvilBot_Dev3\EvilBot.py",
-    "Sad_EvilBot_ALT": r"C:\Users\TAKERO\Downloads\Sad_EvilBot_Dev3\Sad_EvilBot_ALT.py",
-    "Sad_EvilBot": r"C:\Users\TAKERO\Downloads\Sad_EvilBot_Dev3\Sad_EvilBot.py",
-    "ST": r"C:\SillyTavern\SillyTavern-release\Start.bat",
-    "DP8k": r"C:\AI Models\DP8k.kcpps",
-    "Edos": r"C:\Edos\Edos.py",
-    "8k": [
-        r"C:\Users\TAKERO\Downloads\Sad_EvilBot_Dev3\8k.kcpps",
-        r"C:\Users\TAKERO\Downloads\EvilBot_Dev3\8k.kcpps"
-    ]
-}
+DEFAULT_PATHS_FILE = "jsons/DEFAULT_PATHS.json"
+CONFIG_FILE = "jsons/paths_config.json"
 
-CONFIG_FILE = "paths_config.json"
+def load_default_paths():
+    """Загружает предустановленные пути из jsons/DEFAULT_PATHS.json"""
+    if os.path.exists(DEFAULT_PATHS_FILE):
+        try:
+            with open(DEFAULT_PATHS_FILE, encoding='utf-8') as f:
+                return json.load(f)
+        except Exception as e:
+            print(f"Ошибка загрузки jsons/DEFAULT_PATHS.json: {e}")
+            return {}
+    return {}
 
 def load_paths():
+    """Загружает пользовательские пути из jsons/paths_config.json"""
     if os.path.exists(CONFIG_FILE):
         try:
-            with open(CONFIG_FILE, 'r') as f:
+            with open(CONFIG_FILE, encoding='utf-8') as f:
                 return json.load(f)
-        except:
-            return DEFAULT_PATHS
-    return DEFAULT_PATHS
+        except Exception as e:
+            print(f"Ошибка загрузки jsons/paths_config.json: {e}")
+            return {}
+    return {}
 
 def save_paths(paths):
-    with open(CONFIG_FILE, 'w') as f:
-        json.dump(paths, f, indent=4)
+    """Сохраняет пользовательские пути в jsons/paths_config.json"""
+    with open(CONFIG_FILE, 'w', encoding='utf-8') as f:
+        json.dump(paths, f, indent=4, ensure_ascii=False)
+
+def save_default_paths(paths):
+    """Сохраняет предустановленные пути в jsons/DEFAULT_PATHS.json"""
+    with open(DEFAULT_PATHS_FILE, 'w', encoding='utf-8') as f:
+        json.dump(paths, f, indent=4, ensure_ascii=False)
+
+def get_all_paths():
+    """Возвращает объединенные пути: пользовательские + предустановленные"""
+    user_paths = load_paths()
+    default_paths = load_default_paths()
+
+    # Объединяем, приоритет у пользовательских путей
+    all_paths = default_paths.copy()
+    all_paths.update(user_paths)
+    return all_paths
 
 # Инициализация путей
-PATHS = load_paths()
+PATHS = get_all_paths()

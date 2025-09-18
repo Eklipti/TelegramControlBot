@@ -1,8 +1,12 @@
+# SPDX-FileCopyrightText: 2025 ControlBot contributors
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 import io
-from PIL import ImageGrab
+
 import pyautogui
 from aiogram.filters import Command
-from aiogram.types import Message, BufferedInputFile
+from aiogram.types import BufferedInputFile, Message
+from PIL import ImageGrab
 
 from ..router import router
 from ..state import screen_find_requests

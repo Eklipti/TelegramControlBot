@@ -1,14 +1,17 @@
+# SPDX-FileCopyrightText: 2025 ControlBot contributors
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 import io
 import os
 import tempfile
+
 import cv2
-import numpy as np
 import pyautogui
 from aiogram import F
-from aiogram.types import Message, BufferedInputFile
+from aiogram.types import BufferedInputFile, Message
 
 from ..router import router
-from ..state import upload_requests, download_requests, mouse_positions, screen_find_requests
+from ..state import download_requests, mouse_positions, screen_find_requests, upload_requests
 
 
 @router.message(F.document | F.photo)

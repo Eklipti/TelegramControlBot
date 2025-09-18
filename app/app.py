@@ -1,18 +1,21 @@
+# SPDX-FileCopyrightText: 2025 ControlBot contributors
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 import asyncio
 import logging
 import signal
-from typing import List
 
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.enums import ParseMode
 from aiogram.fsm.storage.memory import MemoryStorage
 
-from .config import Settings, load_env
-from .router import router
-from .services.lifecycle import LifecycleManager
-from .handlers.auth import AllowedUserFilter
 from . import handlers  # noqa: F401 - import registers handlers
+from .config import Settings, load_env
+from .handlers.auth import AllowedUserFilter
+from .router import router
+from .security import PrivateChatFilter, init_security
+from .services.lifecycle import LifecycleManager
 
 
 async def _run() -> None:
@@ -23,10 +26,15 @@ async def _run() -> None:
     bot = Bot(token=settings.token, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
     dp = Dispatcher(storage=MemoryStorage())
 
+    # Инициализация системы безопасности
+    init_security(bot)
+
     # apply allowed user filter globally
     allowed_filter = AllowedUserFilter(settings.allowed_user_ids)
-    router.message.filter(allowed_filter)
-    router.callback_query.filter(allowed_filter)
+    private_filter = PrivateChatFilter()
+
+    router.message.filter(allowed_filter, private_filter)
+    router.callback_query.filter(allowed_filter, private_filter)
 
     dp.include_router(router)
 
@@ -36,7 +44,7 @@ async def _run() -> None:
     loop = asyncio.get_running_loop()
     stop_event = asyncio.Event()
 
-    def _stop(*_: List[int]) -> None:
+    def _stop(*_: list[int]) -> None:
         stop_event.set()
 
     for sig in (signal.SIGINT, signal.SIGTERM):

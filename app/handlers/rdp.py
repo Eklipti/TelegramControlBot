@@ -1,14 +1,17 @@
+# SPDX-FileCopyrightText: 2025 ControlBot contributors
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
 import asyncio
 import io
-import time
 import logging
+import time
+
 import pyautogui
-from aiogram.filters import Command
-from aiogram.types import Message, InputMediaPhoto, BufferedInputFile
 from aiogram.exceptions import TelegramRetryAfter
+from aiogram.filters import Command
+from aiogram.types import BufferedInputFile, InputMediaPhoto, Message
 
 from ..router import router
-
 
 RDP_SESSIONS: dict[int, dict] = {}
 
@@ -18,7 +21,7 @@ async def _rdp_stream(bot, chat_id: int, stop_event: asyncio.Event, fps: int) ->
     message_id: int | None = None
     last_edit_time = 0.0
     MIN_EDIT_INTERVAL = 0.4  # Минимум 400мс между edit_message_media
-    
+
     try:
         while not stop_event.is_set():
             try:
@@ -28,7 +31,7 @@ async def _rdp_stream(bot, chat_id: int, stop_event: asyncio.Event, fps: int) ->
                 screenshot.save(img_byte_arr, format='JPEG', quality=85)
                 img_bytes = img_byte_arr.getvalue()
                 caption = f"🖥️ {time.strftime('%H:%M:%S')} | {fps} FPS"
-                
+
                 if message_id is None:
                     try:
                         msg = await bot.send_photo(
@@ -48,7 +51,7 @@ async def _rdp_stream(bot, chat_id: int, stop_event: asyncio.Event, fps: int) ->
                     time_since_last_edit = current_time - last_edit_time
                     if time_since_last_edit < MIN_EDIT_INTERVAL:
                         await asyncio.sleep(MIN_EDIT_INTERVAL - time_since_last_edit)
-                    
+
                     try:
                         media = InputMediaPhoto(media=BufferedInputFile(img_bytes, filename='rdp.jpg'), caption=caption)
                         await bot.edit_message_media(chat_id=chat_id, message_id=message_id, media=media)
@@ -62,7 +65,7 @@ async def _rdp_stream(bot, chat_id: int, stop_event: asyncio.Event, fps: int) ->
                             continue
                         logging.exception("Ошибка при обновлении RDP сообщения")
                         raise
-                
+
                 elapsed = time.time() - start_time
                 sleep_time = max(0, interval - elapsed)
                 await asyncio.sleep(sleep_time)
@@ -77,7 +80,7 @@ async def _rdp_stream(bot, chat_id: int, stop_event: asyncio.Event, fps: int) ->
                 time_since_last_edit = current_time - last_edit_time
                 if time_since_last_edit < MIN_EDIT_INTERVAL:
                     await asyncio.sleep(MIN_EDIT_INTERVAL - time_since_last_edit)
-                
+
                 screenshot = await asyncio.to_thread(pyautogui.screenshot)
                 img_byte_arr = io.BytesIO()
                 screenshot.save(img_byte_arr, format='JPEG', quality=85)
@@ -112,10 +115,22 @@ async def handle_rdp_start(message: Message) -> None:
         await message.answer(f"ℹ️ Сессия уже запущена ({RDP_SESSIONS[chat_id]['fps']} FPS). Используйте /rdp_stop")
         return
 
-    stop_event = asyncio.Event()
-    task = asyncio.create_task(_rdp_stream(message.bot, chat_id, stop_event, fps))
-    RDP_SESSIONS[chat_id] = {"task": task, "stop_event": stop_event, "fps": fps}
-    await message.answer(f"🖥️ Удаленный рабочий стол запущен ({fps} FPS)")
+    from ..security import DANGEROUS_ACTIONS, get_confirmation_manager
+
+    manager = get_confirmation_manager()
+    action_config = DANGEROUS_ACTIONS["rdp_start"]
+
+    await manager.create_confirmation(
+        chat_id=chat_id,
+        action_type="rdp_start",
+        action_data={
+            "action_type": "rdp_start",
+            "action_data": {"fps": fps},
+            "fps": fps
+        },
+        warning_message=action_config["warning"].format(action_data=f"Запуск RDP-трансляции с {fps} FPS"),
+        timeout=action_config["timeout"]
+    )
 
 
 @router.message(Command("rdp_stop"))
