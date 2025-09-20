@@ -9,6 +9,7 @@ import time
 from aiogram.filters import Command
 from aiogram.types import BufferedInputFile, Message
 
+from ..core.logging import debug, error, info, warning
 from ..router import router
 
 # Черный список системных директорий
@@ -94,7 +95,7 @@ def get_folder_size_and_count(path: str) -> tuple[int, int]:
 
 def format_size(size_bytes: int) -> str:
     """Форматирует размер в читаемый вид"""
-    for unit in ['B', 'KB', 'MB', 'GB']:
+    for unit in ["B", "KB", "MB", "GB"]:
         if size_bytes < 1024.0:
             return f"{size_bytes:.1f} {unit}"
         size_bytes /= 1024.0
@@ -110,7 +111,7 @@ async def handle_upload_command(message: Message) -> None:
 
     target_path = os.path.abspath(args[1])
 
-    from ..security import DANGEROUS_ACTIONS, get_confirmation_manager
+    from ..core.security import DANGEROUS_ACTIONS, get_confirmation_manager
 
     manager = get_confirmation_manager()
     action_config = DANGEROUS_ACTIONS["file_upload"]
@@ -121,10 +122,10 @@ async def handle_upload_command(message: Message) -> None:
         action_data={
             "action_type": "file_upload",
             "action_data": {"target_path": target_path},
-            "target_path": target_path
+            "target_path": target_path,
         },
         warning_message=action_config["warning"].format(action_data=f"Загрузка файла по пути: {target_path}"),
-        timeout=action_config["timeout"]
+        timeout=action_config["timeout"],
     )
 
 
@@ -145,30 +146,34 @@ async def handle_download_command(message: Message) -> None:
 
         # Проверяем черный список
         if is_path_blacklisted(path):
-            await message.answer(f"🚫 <b>Доступ запрещен!</b>\n\n"
-                               f"Путь находится в системной директории и недоступен для скачивания:\n"
-                               f"<code>{path}</code>\n\n"
-                               f"Используйте безопасные директории, например:\n"
-                               f"• <code>C:\\Users\\{os.getenv('USERNAME', 'User')}\\Desktop</code>\n"
-                               f"• <code>C:\\Users\\{os.getenv('USERNAME', 'User')}\\Documents</code>\n"
-                               f"• <code>C:\\Users\\{os.getenv('USERNAME', 'User')}\\Downloads</code>")
+            await message.answer(
+                f"🚫 <b>Доступ запрещен!</b>\n\n"
+                f"Путь находится в системной директории и недоступен для скачивания:\n"
+                f"<code>{path}</code>\n\n"
+                f"Используйте безопасные директории, например:\n"
+                f"• <code>C:\\Users\\{os.getenv('USERNAME', 'User')}\\Desktop</code>\n"
+                f"• <code>C:\\Users\\{os.getenv('USERNAME', 'User')}\\Documents</code>\n"
+                f"• <code>C:\\Users\\{os.getenv('USERNAME', 'User')}\\Downloads</code>"
+            )
             return
 
         if os.path.isfile(path):
             # Проверяем размер файла
             file_size = os.path.getsize(path)
             if file_size > MAX_FILE_SIZE:
-                await message.answer(f"⚠️ <b>Файл слишком большой!</b>\n\n"
-                                   f"Размер: {format_size(file_size)}\n"
-                                   f"Максимум: {format_size(MAX_FILE_SIZE)}\n\n"
-                                   f"Используйте архиватор для сжатия файла.")
+                await message.answer(
+                    f"⚠️ <b>Файл слишком большой!</b>\n\n"
+                    f"Размер: {format_size(file_size)}\n"
+                    f"Максимум: {format_size(MAX_FILE_SIZE)}\n\n"
+                    f"Используйте архиватор для сжатия файла."
+                )
                 return
 
             # Скачиваем файл
             with open(path, "rb") as f:
                 await message.answer_document(
                     BufferedInputFile(f.read(), filename=os.path.basename(path)),
-                    caption=f"📥 Файл: {path}\n📊 Размер: {format_size(file_size)}"
+                    caption=f"📥 Файл: {path}\n📊 Размер: {format_size(file_size)}",
                 )
         else:
             # Это папка - проверяем размер и количество элементов
@@ -176,21 +181,25 @@ async def handle_download_command(message: Message) -> None:
 
             # Проверяем ограничения
             if item_count > MAX_FOLDER_ITEMS:
-                await message.answer(f"⚠️ <b>Папка содержит слишком много элементов!</b>\n\n"
-                                   f"Элементов: {item_count:,}\n"
-                                   f"Максимум: {MAX_FOLDER_ITEMS:,}\n\n"
-                                   f"Попробуйте скачать отдельные подпапки.")
+                await message.answer(
+                    f"⚠️ <b>Папка содержит слишком много элементов!</b>\n\n"
+                    f"Элементов: {item_count:,}\n"
+                    f"Максимум: {MAX_FOLDER_ITEMS:,}\n\n"
+                    f"Попробуйте скачать отдельные подпапки."
+                )
                 return
 
             if folder_size > MAX_FOLDER_SIZE:
-                await message.answer(f"⚠️ <b>Папка слишком большая!</b>\n\n"
-                                   f"Размер: {format_size(folder_size)}\n"
-                                   f"Максимум: {format_size(MAX_FOLDER_SIZE)}\n\n"
-                                   f"Попробуйте скачать отдельные подпапки.")
+                await message.answer(
+                    f"⚠️ <b>Папка слишком большая!</b>\n\n"
+                    f"Размер: {format_size(folder_size)}\n"
+                    f"Максимум: {format_size(MAX_FOLDER_SIZE)}\n\n"
+                    f"Попробуйте скачать отдельные подпапки."
+                )
                 return
 
             # Требуем подтверждение для папок
-            from ..security import DANGEROUS_ACTIONS, get_confirmation_manager
+            from ..core.security import DANGEROUS_ACTIONS, get_confirmation_manager
 
             manager = get_confirmation_manager()
             action_config = DANGEROUS_ACTIONS["folder_download"]
@@ -203,14 +212,12 @@ async def handle_download_command(message: Message) -> None:
                     "action_data": {"path": path, "size": folder_size, "items": item_count},
                     "path": path,
                     "size": folder_size,
-                    "items": item_count
+                    "items": item_count,
                 },
                 warning_message=action_config["warning"].format(
-                    path=path,
-                    size=format_size(folder_size),
-                    items=item_count
+                    path=path, size=format_size(folder_size), items=item_count
                 ),
-                timeout=action_config["timeout"]
+                timeout=action_config["timeout"],
             )
 
     except Exception as e:
@@ -234,7 +241,7 @@ async def handle_cut_command(message: Message) -> None:
         await message.answer(f"⚠️ Указанный путь не является файлом: {file_path}")
         return
 
-    from ..security import DANGEROUS_ACTIONS, get_confirmation_manager
+    from ..core.security import DANGEROUS_ACTIONS, get_confirmation_manager
 
     manager = get_confirmation_manager()
     action_config = DANGEROUS_ACTIONS["file_delete"]
@@ -242,13 +249,9 @@ async def handle_cut_command(message: Message) -> None:
     await manager.create_confirmation(
         chat_id=message.chat.id,
         action_type="file_delete",
-        action_data={
-            "action_type": "file_delete",
-            "action_data": {"file_path": file_path},
-            "file_path": file_path
-        },
+        action_data={"action_type": "file_delete", "action_data": {"file_path": file_path}, "file_path": file_path},
         warning_message=action_config["warning"].format(action_data=f"Удаление файла: {file_path}"),
-        timeout=action_config["timeout"]
+        timeout=action_config["timeout"],
     )
 
 
@@ -265,20 +268,15 @@ async def execute_folder_download(action_data: dict) -> None:
             await msg.edit_text("📦 Архивация папки...")
 
         zip_path = shutil.make_archive(
-            base_name=os.path.join(tempfile.gettempdir(), f"folder_{time.time()}"),
-            format='zip',
-            root_dir=path
+            base_name=os.path.join(tempfile.gettempdir(), f"folder_{time.time()}"), format="zip", root_dir=path
         )
 
         # Отправляем архив
-        with open(zip_path, 'rb') as zip_file:
+        with open(zip_path, "rb") as zip_file:
             await action_data["bot"].send_document(
                 chat_id=action_data["chat_id"],
-                document=BufferedInputFile(
-                    zip_file.read(),
-                    filename=f"{os.path.basename(path)}.zip"
-                ),
-                caption=f"📁 Папка: {path}\n📊 Размер: {format_size(size)}\n📄 Элементов: {items:,}"
+                document=BufferedInputFile(zip_file.read(), filename=f"{os.path.basename(path)}.zip"),
+                caption=f"📁 Папка: {path}\n📊 Размер: {format_size(size)}\n📄 Элементов: {items:,}",
             )
 
         # Удаляем временный файл
@@ -290,6 +288,3 @@ async def execute_folder_download(action_data: dict) -> None:
     except Exception as e:
         if msg:
             await msg.edit_text(f"⚠️ Ошибка при архивации: {e}")
-
-
-

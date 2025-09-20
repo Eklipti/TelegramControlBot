@@ -14,16 +14,19 @@ if errorlevel 1 (
     exit /b 1
 )
 
-REM Check if main.py exists
-if not exist "%~dp0main.py" (
-    echo ERROR: main.py not found in current directory
+REM Check if main.py exists (go up two directories from scripts/windows/)
+if not exist "%~dp0..\..\main.py" (
+    echo ERROR: main.py not found in project root
     echo Please run this script from the ControlBot directory
     pause
     exit /b 1
 )
 
+REM Change to project root directory
+cd /d "%~dp0..\.."
+
 REM Run the bot
-python "%~dp0main.py"
+python main.py
 
 REM Keep window open if there was an error
 if errorlevel 1 (

@@ -1,6 +1,6 @@
-# ControlBot - Telegram Bot for Remote PC Control
+# ControlBot v2.2.1 - Telegram Bot for Remote PC Control
 
-A powerful Telegram bot for remote computer management through Telegram using Aiogram 3.
+A powerful Telegram bot for remote computer management through Telegram using Aiogram 3. ControlBot provides comprehensive remote control capabilities for Windows systems with a focus on security and ease of use.
 
 ## ⚠️ Important Security Notice
 
@@ -38,6 +38,97 @@ This bot provides remote control capabilities that can be potentially dangerous 
 - **Use at your own risk** - developers assume no liability
 
 **By using this software, you agree to use it ethically and legally.**
+
+## 📁 Project Structure
+
+```
+ControlBot_v2/
+├── app/                    # Main application code
+│   ├── config/            # Configuration modules (Pydantic Settings)
+│   ├── core/              # Core functionality (security, etc.)
+│   ├── handlers/          # Telegram bot handlers
+│   └── services/          # Business logic services
+├── docs/                  # Documentation
+├── scripts/               # Platform-specific scripts
+│   └── windows/           # Windows batch files
+├── tests/                 # Test files
+└── main.py               # Application entry point
+```
+
+## 📚 Documentation
+
+- **[Russian Documentation](docs/README_ru.md)** - Detailed installation and usage guide
+- **[Command Reference](docs/all_commands.md)** - Complete list of all commands with examples
+- **[Configuration Guide](docs/CONFIG.md)** - Pydantic Settings configuration
+- **[Future Plans](docs/FUTURE.md)** - Upcoming features and improvements
+- **[Testing Guide](docs/TESTING.md)** - Testing and development information
+- **[Headless Mode](docs/HEADLESS.md)** - Running in headless environments
+- **[Development Guide](docs/DEVELOPMENT.md)** - Developer documentation
+- **[Security Policy](docs/SECURITY.md)** - Security guidelines and reporting
+- **[Changelog](docs/CHANGELOG.md)** - Version history and changes
+- **[Migration Guide v2.2](docs/MIGRATION_v2.2.md)** - Migration guide for v2.2.0
+
+## ⚙️ Configuration
+
+ControlBot v2.2.1+ uses **Pydantic Settings** for advanced configuration management:
+
+### Key Features
+- **Environment Variables**: All settings via `.env` file or environment
+- **Validation**: Automatic validation of all configuration parameters
+- **Type Safety**: Full type hints and validation with Pydantic v2
+- **Flexible Modes**: GUI/Headless mode switching
+- **Security**: Built-in user authentication and access control
+
+### Quick Configuration
+```bash
+# Copy example configuration
+cp .env.example .env
+
+# Edit with your settings
+# Required: TELEGRAM_BOT_TOKEN, ALLOWED_USER_IDS
+# Optional: GUI_MODE, HEADLESS_MODE, LOG_LEVEL, etc.
+```
+
+See [Configuration Guide](docs/CONFIG.md) for complete setup instructions.
+
+## 🔧 Features
+
+### 🖥️ System Management
+- **Process Control**: Launch, stop, and monitor processes
+- **System Operations**: Shutdown, restart, sleep, hibernate
+- **Process Monitoring**: View active processes and system resources
+- **Path Management**: Quick access to frequently used applications
+
+### 📁 File Operations
+- **File Transfer**: Upload and download files/folders
+- **File Search**: Advanced file search with filters
+- **File Management**: Cut, copy, and organize files
+- **Archive Support**: Automatic ZIP creation for folders
+
+### 🖱️ Remote Control
+- **Mouse Control**: Move, click, scroll, and save positions
+- **Keyboard Input**: Send keys and type text
+- **Screen Capture**: Screenshots with coordinate grid
+- **Image Recognition**: Find elements on screen by image
+- **RDP Streaming**: Real-time screen streaming (1-10 FPS)
+
+### 💻 Command Line Interface
+- **Interactive CMD**: Full command line session with auto-updates
+- **Command Execution**: Run any command with real-time output
+- **Session Management**: Start, stop, and manage command sessions
+- **Output Export**: Save complete command output as files
+
+### 📊 Monitoring & Security
+- **File Monitoring**: Real-time file system change detection
+- **User Authentication**: Whitelist-based access control
+- **Private Chat Only**: Secure communication channel
+- **Activity Logging**: Comprehensive operation tracking
+
+### 🎯 User Experience
+- **Auto-command Registration**: All commands appear in Telegram menu
+- **Context-aware Help**: Detailed help for each command
+- **Inline Keyboards**: Quick access buttons for common operations
+- **Real-time Updates**: Live status updates and notifications
 
 ## 🚀 Quick Start
 
@@ -85,31 +176,41 @@ This bot provides remote control capabilities that can be potentially dangerous 
    
    Or use the provided batch file:
    ```bash
-   ControlBot.bat
+   scripts/windows/ControlBot.bat
    ```
 
-## 📚 Documentation
+## 🖥️ CLI Launch
 
-- **[Russian Documentation](docs/README_ru.md)** - Detailed installation and usage guide
-- **[Command Reference](docs/all_commands.md)** - Complete list of all commands with examples
-- **[Future Plans](docs/FUTURE.md)** - Upcoming features and improvements
+ControlBot supports multiple ways to launch the application:
 
-## 🔧 Features
+### Module Launch
+```bash
+# Run as Python module
+python -m app
+```
 
-- **System Control**: Shutdown, restart, sleep, hibernate
-- **File Management**: Upload, download, browse files
-- **Process Management**: View and terminate processes
-- **Screen Control**: Take screenshots, remote desktop
-- **Security**: User authentication and private chat only
-- **Monitoring**: System status and performance metrics
+### Console Script (after installation)
+```bash
+# Install the package
+pip install -e .
 
-## 🎯 User Experience
+# Run using console script
+controlbot
+```
 
-- **Auto-command registration**: All commands automatically appear in Telegram menu
-- **Startup notifications**: Users receive "🟢 Bot started" notification
-- **Shutdown notifications**: Users receive "⛔ Bot stopped" notification
-- **Intuitive interface**: `/start` for welcome, `/help` for command list
-- **Context-aware help**: `/help <command>` for detailed information
+### Direct Script Launch
+```bash
+# Run main script directly
+python main.py
+```
+
+### Windows Batch File
+```bash
+# Use provided Windows batch file
+scripts/windows/ControlBot.bat
+```
+
+All launch methods support the same configuration options and environment variables.
 
 ## 📄 License
 
@@ -121,16 +222,57 @@ See [LICENSE](LICENSE) for the complete license text.
 
 ## 🧪 Testing
 
-The project includes automated testing via GitHub Actions:
+The project includes comprehensive testing with **67 tests** across multiple categories:
 
-- **Code Quality**: Ruff linting and MyPy type checking
+### Test Statistics (v2.2.1)
+- **Total Tests**: 67 tests
+- **Smoke Tests**: 16 tests (basic functionality and import validation)
+- **Unit Tests**: 35 tests (component-level testing)
+- **Headless Tests**: 51 tests (CI/GitHub Actions compatible)
+- **GUI Tests**: 1 test (requires GUI modules)
+- **Integration Tests**: 8 tests (end-to-end functionality)
+- **Configuration Tests**: 7 tests (Pydantic Settings validation)
+
+### Test Types
 - **Smoke Tests**: Basic functionality and import validation
-- **Compatibility**: Python 3.11 and 3.12 support
+- **Unit Tests**: Individual component testing with mocks
+- **Headless Tests**: Tests that work in CI/GitHub Actions environment
+- **GUI Tests**: Tests requiring GUI modules (pyautogui, cv2, PIL)
+- **Integration Tests**: End-to-end functionality tests
+- **Configuration Tests**: Pydantic Settings validation and parsing
 
-Run tests locally:
+### Running Tests
+
+**All tests (local development):**
 ```bash
-python run_tests.py
+python run_all_tests.py
+# or
+python -m pytest tests/ -v
 ```
+
+**Headless tests only (CI/GitHub Actions):**
+```bash
+python run_headless_tests.py
+# or
+python -m pytest tests/ -m headless -v
+```
+
+**Specific test categories:**
+```bash
+# GUI tests only
+python -m pytest tests/ -m gui -v
+
+# Smoke tests only
+python -m pytest tests/ -m smoke -v
+
+# Configuration tests only
+python -m pytest tests/test_config.py -v
+```
+
+### CI/CD
+- **GitHub Actions**: Automated testing on Python 3.11 and 3.12
+- **Code Quality**: Ruff linting and MyPy type checking
+- **Headless Support**: Automatic headless mode detection
 
 ## 🤝 Contributing
 

@@ -8,21 +8,18 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
 from . import (
+    attachments,
     cancel,
     cmd,
-    docs_photos,
+    command_search,
     files,
-    find_cmd,
     help,
     monitor,
     mouse_keyboard,
-    paths,
+    paths_handlers,
     processes,
-    rdp,
+    remote_desktop,
     screen,
-    security,
+    security_handlers,
     system,
 )
-
-
-

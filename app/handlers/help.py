@@ -4,12 +4,14 @@
 from aiogram.filters import Command
 from aiogram.types import Message
 
-from ..help_texts import COMMAND_HELP
+from ..core.logging import info
+from ..help_texts import COMMAND_HELP, COMMAND_CATEGORIES
 from ..router import router
 
 
 @router.message(Command("start"))
 async def handle_start(message: Message) -> None:
+    info(f"Пользователь {message.from_user.id} ({message.from_user.username or 'без username'}) запустил бота", "help")
     welcome_text = (
         "🤖 <b>Добро пожаловать в ControlBot!</b>\n\n"
         "Этот бот позволяет управлять вашим компьютером удаленно через Telegram.\n\n"
@@ -33,7 +35,7 @@ async def handle_help(message: Message) -> None:
     args = message.text.split(maxsplit=1)
 
     if len(args) > 1:
-        cmd = args[1].lstrip('/').lower()
+        cmd = args[1].lstrip("/").lower()
         matched_cmd = None
         for command in COMMAND_HELP:
             if command.startswith(cmd):
@@ -42,41 +44,15 @@ async def handle_help(message: Message) -> None:
 
         if matched_cmd and matched_cmd in COMMAND_HELP:
             help_data = COMMAND_HELP[matched_cmd]
-            response = (
-                f"🔹 <b>Команда: /{matched_cmd}</b>\n\n"
-                f"ℹ️ {help_data['detailed']}"
-            )
+            response = f"🔹 <b>Команда: /{matched_cmd}</b>\n\nℹ️ {help_data['detailed']}"
             await message.answer(response)
         else:
-            await message.answer(
-                f"❌ Команда '{cmd}' не найдена. Используйте /help для списка команд"
-            )
+            await message.answer(f"❌ Команда '{cmd}' не найдена. Используйте /help для списка команд")
         return
 
     response = "📚 <b>Доступные команды:</b>\n\n"
-    categories = {
-        "Процессы": ["on", "off", "reload", "processes"],
-        "Система": ["tasklist"],
-        "Пути": ["add_path", "list_paths", "del_path", "add_default_path", "list_default_paths", "del_default_path", "reload_paths"],
-        "Файлы": ["upload", "download", "cut", "find"],
-        "Мониторинг": ["monitor_add", "monitor_remove", "monitor_list", "monitor_stop"],
-        "Командная строка": ["cmd_session_start", "cmd_session_stop", "cmd", "cmd_wait", "cmdupdate", "cmd_dump"],
-        "Удаленное управление": ["rdp_start", "rdp_stop"],
-        "Мышь": [
-            "mouse_move",
-            "mouse_move_rel",
-            "mouse_save",
-            "mouse_goto",
-            "mouse_speed",
-            "mouse_click",
-            "mouse_scroll",
-        ],
-        "Клавиатура": ["key", "type"],
-        "Экран": ["screen", "screen_find", "screen_mark"],
-        "Прочее": ["start", "help", "cancel"],
-    }
 
-    for category, commands in categories.items():
+    for category, commands in COMMAND_CATEGORIES.items():
         response += f"<b>🔹 {category}:</b>\n"
         for cmd in commands:
             if cmd in COMMAND_HELP:
@@ -90,6 +66,3 @@ async def handle_help(message: Message) -> None:
     )
 
     await message.answer(response)
-
-
-

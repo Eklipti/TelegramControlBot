@@ -6,11 +6,11 @@ import io
 import logging
 import time
 
-import pyautogui
 from aiogram.exceptions import TelegramRetryAfter
 from aiogram.filters import Command
 from aiogram.types import BufferedInputFile, InputMediaPhoto, Message
 
+from ..gui_utils import safe_import_pyautogui
 from ..router import router
 
 RDP_SESSIONS: dict[int, dict] = {}
@@ -23,12 +23,13 @@ async def _rdp_stream(bot, chat_id: int, stop_event: asyncio.Event, fps: int) ->
     MIN_EDIT_INTERVAL = 0.4  # Минимум 400мс между edit_message_media
 
     try:
+        pyautogui = safe_import_pyautogui()
         while not stop_event.is_set():
             try:
                 start_time = time.time()
                 screenshot = await asyncio.to_thread(pyautogui.screenshot)
                 img_byte_arr = io.BytesIO()
-                screenshot.save(img_byte_arr, format='JPEG', quality=85)
+                screenshot.save(img_byte_arr, format="JPEG", quality=85)
                 img_bytes = img_byte_arr.getvalue()
                 caption = f"🖥️ {time.strftime('%H:%M:%S')} | {fps} FPS"
 
@@ -36,7 +37,7 @@ async def _rdp_stream(bot, chat_id: int, stop_event: asyncio.Event, fps: int) ->
                     try:
                         msg = await bot.send_photo(
                             chat_id,
-                            BufferedInputFile(img_bytes, filename='rdp.jpg'),
+                            BufferedInputFile(img_bytes, filename="rdp.jpg"),
                             caption=caption,
                             disable_notification=True,
                         )
@@ -53,7 +54,7 @@ async def _rdp_stream(bot, chat_id: int, stop_event: asyncio.Event, fps: int) ->
                         await asyncio.sleep(MIN_EDIT_INTERVAL - time_since_last_edit)
 
                     try:
-                        media = InputMediaPhoto(media=BufferedInputFile(img_bytes, filename='rdp.jpg'), caption=caption)
+                        media = InputMediaPhoto(media=BufferedInputFile(img_bytes, filename="rdp.jpg"), caption=caption)
                         await bot.edit_message_media(chat_id=chat_id, message_id=message_id, media=media)
                         last_edit_time = time.time()
                     except TelegramRetryAfter as e:
@@ -69,6 +70,10 @@ async def _rdp_stream(bot, chat_id: int, stop_event: asyncio.Event, fps: int) ->
                 elapsed = time.time() - start_time
                 sleep_time = max(0, interval - elapsed)
                 await asyncio.sleep(sleep_time)
+            except RuntimeError as e:
+                logging.error(f"GUI недоступен в RDP стриме: {e}")
+                await bot.send_message(chat_id, f"⚠️ {e}")
+                break
             except Exception:
                 logging.exception("Ошибка в RDP стриме")
                 await asyncio.sleep(1)
@@ -81,11 +86,17 @@ async def _rdp_stream(bot, chat_id: int, stop_event: asyncio.Event, fps: int) ->
                 if time_since_last_edit < MIN_EDIT_INTERVAL:
                     await asyncio.sleep(MIN_EDIT_INTERVAL - time_since_last_edit)
 
-                screenshot = await asyncio.to_thread(pyautogui.screenshot)
+                try:
+                    screenshot = await asyncio.to_thread(pyautogui.screenshot)
+                except RuntimeError:
+                    # GUI недоступен, пропускаем финальное обновление
+                    return
                 img_byte_arr = io.BytesIO()
-                screenshot.save(img_byte_arr, format='JPEG', quality=85)
-                media = InputMediaPhoto(media=BufferedInputFile(img_byte_arr.getvalue(), filename='rdp.jpg'),
-                                        caption=f"⛔ СТРИМИНГ ОСТАНОВЛЕН | {time.strftime('%H:%M:%S')}")
+                screenshot.save(img_byte_arr, format="JPEG", quality=85)
+                media = InputMediaPhoto(
+                    media=BufferedInputFile(img_byte_arr.getvalue(), filename="rdp.jpg"),
+                    caption=f"⛔ СТРИМИНГ ОСТАНОВЛЕН | {time.strftime('%H:%M:%S')}",
+                )
                 try:
                     await bot.edit_message_media(chat_id=chat_id, message_id=message_id, media=media)
                 except TelegramRetryAfter as e:
@@ -115,7 +126,7 @@ async def handle_rdp_start(message: Message) -> None:
         await message.answer(f"ℹ️ Сессия уже запущена ({RDP_SESSIONS[chat_id]['fps']} FPS). Используйте /rdp_stop")
         return
 
-    from ..security import DANGEROUS_ACTIONS, get_confirmation_manager
+    from ..core.security import DANGEROUS_ACTIONS, get_confirmation_manager
 
     manager = get_confirmation_manager()
     action_config = DANGEROUS_ACTIONS["rdp_start"]
@@ -123,13 +134,9 @@ async def handle_rdp_start(message: Message) -> None:
     await manager.create_confirmation(
         chat_id=chat_id,
         action_type="rdp_start",
-        action_data={
-            "action_type": "rdp_start",
-            "action_data": {"fps": fps},
-            "fps": fps
-        },
+        action_data={"action_type": "rdp_start", "action_data": {"fps": fps}, "fps": fps},
         warning_message=action_config["warning"].format(action_data=f"Запуск RDP-трансляции с {fps} FPS"),
-        timeout=action_config["timeout"]
+        timeout=action_config["timeout"],
     )
 
 
@@ -137,12 +144,9 @@ async def handle_rdp_start(message: Message) -> None:
 async def handle_rdp_stop(message: Message) -> None:
     chat_id = message.chat.id
     if chat_id in RDP_SESSIONS:
-        RDP_SESSIONS[chat_id]['stop_event'].set()
+        RDP_SESSIONS[chat_id]["stop_event"].set()
         await asyncio.sleep(0.1)
         del RDP_SESSIONS[chat_id]
         await message.answer("⛔ Сессия остановлена")
     else:
         await message.answer("ℹ️ Нет активной сессии")
-
-
-

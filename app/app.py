@@ -2,63 +2,68 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
 import asyncio
-import logging
-import signal
 
-from aiogram import Bot, Dispatcher
-from aiogram.client.default import DefaultBotProperties
-from aiogram.enums import ParseMode
-from aiogram.fsm.storage.memory import MemoryStorage
+from aiogram                        import Bot, Dispatcher
+from aiogram.client.default         import DefaultBotProperties
+from aiogram.enums                  import ParseMode
+from aiogram.fsm.storage.memory     import MemoryStorage
 
-from . import handlers  # noqa: F401 - import registers handlers
-from .config import Settings, load_env
-from .handlers.auth import AllowedUserFilter
-from .router import router
-from .security import PrivateChatFilter, init_security
-from .services.lifecycle import LifecycleManager
+from .handlers.registration         import register_all_handlers
+from .config                        import get_settings  
+from .core.security                 import PrivateChatFilter, init_security
+from .handlers.auth                 import AllowedUserFilter
+from .middleware.logging_middleware import BotInteractionLoggingMiddleware
+from .router                        import router
+
+from .services.lifecycle            import LifecycleManager
+from .services.metrics              import init_metrics
+from .services.centralized_logging  import init_centralized_logging
 
 
 async def _run() -> None:
-    load_env()
-    settings = Settings.load()
-    logging.basicConfig(level=logging.INFO)
+    settings = get_settings()
 
-    bot = Bot(token=settings.token, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
+    from app.core.logging import info
+    info("Запуск приложения ControlBot", "app")
+
+    bot = Bot(token=settings.telegram_bot_token, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
     dp = Dispatcher(storage=MemoryStorage())
 
-    # Инициализация системы безопасности
+    dp.message.middleware(BotInteractionLoggingMiddleware())
+    dp.callback_query.middleware(BotInteractionLoggingMiddleware())
+    info("Bot, Dispatcher и middleware созданы", "app")
+
     init_security(bot)
+    info("Система безопасности инициализирована", "app")
 
-    # apply allowed user filter globally
-    allowed_filter = AllowedUserFilter(settings.allowed_user_ids)
+    init_metrics(str(settings.get_data_directory()))
+    init_centralized_logging(str(settings.get_logs_directory()), str(settings.get_exports_directory()))
+    info("Система мониторинга и метрик инициализирована", "app")
+
+    allowed_filter = AllowedUserFilter(settings.get_allowed_user_ids())
     private_filter = PrivateChatFilter()
-
     router.message.filter(allowed_filter, private_filter)
     router.callback_query.filter(allowed_filter, private_filter)
+    info("Фильтры безопасности применены", "app")
+
+    register_all_handlers(dp)
+    info("Все handlers зарегистрированы", "app")
 
     dp.include_router(router)
+    info("Роутер подключен к Dispatcher", "app")
 
     lifecycle = LifecycleManager(bot=bot, settings=settings)
     await lifecycle.on_startup()
-
-    loop = asyncio.get_running_loop()
-    stop_event = asyncio.Event()
-
-    def _stop(*_: list[int]) -> None:
-        stop_event.set()
-
-    for sig in (signal.SIGINT, signal.SIGTERM):
-        try:
-            loop.add_signal_handler(sig, _stop)
-        except NotImplementedError:
-            signal.signal(sig, lambda *_: _stop())
+    info("LifecycleManager запущен", "app")
 
     try:
+        info("Начинаем polling Telegram API", "app")
         await dp.start_polling(bot, allowed_updates=dp.resolve_used_update_types())
     finally:
+        info("Завершение работы приложения", "app")
         await lifecycle.on_shutdown()
         await bot.session.close()
-
+        info("Приложение остановлено", "app")
 
 def main() -> None:
     try:
@@ -69,6 +74,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
-
-

@@ -108,6 +108,9 @@ venv.bak/
 .dmypy.json
 dmypy.json
 
+# ruff
+.ruff_cache/
+
 # Pyre type checker
 .pyre/
 
@@ -154,20 +157,106 @@ Thumbs.db
 
 # Project specific
 # ControlBot specific files
+
+# Logs and runtime data
 logs/
 *.log
+*.log.*
+test_logs/
+
+# Temporary files and directories
 temp/
 tmp/
 screenshots/
 downloads/
 uploads/
-jsons/paths_config.json
 cmd_output*.txt
+
+# Configuration files (keep examples, ignore user configs)
+# User-specific paths and data
+jsons/  # Contains: DEFAULT_PATHS.json, user_id/ folders, user_id_paths.json files
+.env
+.env.local
+.env.production
+.env.development
+
+# Cache and compiled files
 __pycache__/
 *.pyc
 *.pyo
+*.py[cod]
+*$py.class
 
 # Telegram bot data
 session_files/
 bot_sessions/
 monitoring_data/
+
+# IDE and editor files
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+.history/
+
+# OS specific files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Testing and coverage
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.nox/
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+.hypothesis/
+
+# Type checking
+.mypy_cache/
+.dmypy.json
+dmypy.json
+.pyre/
+
+# Linting
+.ruff_cache/
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# Documentation builds
+docs/_build/
+site/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Backup files
+*.bak
+*.backup
+*.old
+*.orig

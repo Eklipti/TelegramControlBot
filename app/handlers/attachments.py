@@ -5,11 +5,11 @@ import io
 import os
 import tempfile
 
-import cv2
-import pyautogui
 from aiogram import F
 from aiogram.types import BufferedInputFile, Message
 
+from ..core.logging import debug, error, info, warning
+from ..gui_utils import lazy_import_cv2, lazy_import_pyautogui, lazy_import_pil
 from ..router import router
 from ..state import download_requests, mouse_positions, screen_find_requests, upload_requests
 
@@ -17,16 +17,20 @@ from ..state import download_requests, mouse_positions, screen_find_requests, up
 @router.message(F.document | F.photo)
 async def handle_file(message: Message) -> None:
     chat_id = message.chat.id
+    debug(f"Получен файл от пользователя {chat_id}", "attachments")
 
     if chat_id in upload_requests:
         target_path = upload_requests.pop(chat_id)
+        info(f"Начало загрузки файла в {target_path} для пользователя {chat_id}", "attachments")
         try:
             if message.document:
                 file_id = message.document.file_id
                 original_name = message.document.file_name or "uploaded_file"
+                debug(f"Загружается документ: {original_name}", "attachments")
             else:
                 file_id = message.photo[-1].file_id  # type: ignore[index]
                 original_name = "uploaded_photo.jpg"
+                debug(f"Загружается фото: {original_name}", "attachments")
 
             if os.path.isdir(target_path):
                 final_path = os.path.join(target_path, original_name)
@@ -36,27 +40,36 @@ async def handle_file(message: Message) -> None:
             dir_path = os.path.dirname(final_path)
             if dir_path and not os.path.exists(dir_path):
                 os.makedirs(dir_path)
+                debug(f"Создана директория: {dir_path}", "attachments")
 
             file = await message.bot.get_file(file_id)
             buf = io.BytesIO()
             await message.bot.download_file(file.file_path, destination=buf)  # type: ignore[arg-type]
-            with open(final_path, 'wb') as new_file:
+            with open(final_path, "wb") as new_file:
                 new_file.write(buf.getvalue())
 
+            info(f"Файл успешно сохранен: {final_path}", "attachments")
             await message.answer(f"✅ Файл сохранен как:\n{final_path}")
         except Exception as e:
+            error(f"Ошибка при загрузке файла для пользователя {chat_id}: {e}", "attachments")
             await message.answer(f"⚠️ Ошибка при загрузке файла: {e}")
         return
 
     if chat_id in download_requests:
         file_path = download_requests.pop(chat_id)
+        info(f"Начало скачивания файла {file_path} для пользователя {chat_id}", "attachments")
         try:
             if not os.path.exists(file_path):
+                warning(f"Файл не существует: {file_path}", "attachments")
                 await message.answer(f"⚠️ Файл не существует: {file_path}")
                 return
-            with open(file_path, 'rb') as f:
-                await message.answer_document(BufferedInputFile(f.read(), filename=os.path.basename(file_path)), caption=f"📥 Файл: {file_path}")
+            with open(file_path, "rb") as f:
+                await message.answer_document(
+                    BufferedInputFile(f.read(), filename=os.path.basename(file_path)), caption=f"📥 Файл: {file_path}"
+                )  # noqa: E501
+            info(f"Файл успешно отправлен: {file_path}", "attachments")
         except Exception as e:
+            error(f"Ошибка при отправке файла {file_path} для пользователя {chat_id}: {e}", "attachments")
             await message.answer(f"⚠️ Ошибка при отправке файла: {e}")
         return
 
@@ -64,21 +77,29 @@ async def handle_file(message: Message) -> None:
         chat_id = message.chat.id
         # Одноразовый флаг на поиск по фото
         screen_find_requests.discard(chat_id)
+        info(f"Начало поиска по фото для пользователя {chat_id}", "attachments")
         template_path: str | None = None
         screen_path: str | None = None
         try:
+            # Лениво импортируем GUI модули
+            cv2 = lazy_import_cv2()
+            pyautogui = lazy_import_pyautogui()
+            debug("GUI модули успешно импортированы", "attachments")
+
             file = await message.bot.get_file(message.photo[-1].file_id)  # type: ignore[index]
             buf = io.BytesIO()
             await message.bot.download_file(file.file_path, destination=buf)  # type: ignore[arg-type]
 
-            with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as tmp_t:
+            with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp_t:
                 tmp_t.write(buf.getvalue())
                 template_path = tmp_t.name
 
             screenshot = pyautogui.screenshot()
-            with tempfile.NamedTemporaryFile(suffix='.png', delete=False) as tmp_s:
-                screenshot.save(tmp_s, format='PNG')
+            with tempfile.NamedTemporaryFile(suffix=".png", delete=False) as tmp_s:
+                screenshot.save(tmp_s, format="PNG")
                 screen_path = tmp_s.name
+
+            debug("Скриншот и шаблон сохранены во временные файлы", "attachments")
 
             img_rgb = cv2.imread(screen_path)
             template = cv2.imread(template_path)
@@ -89,11 +110,18 @@ async def handle_file(message: Message) -> None:
             if max_val > 0.8:
                 x, y = max_loc
                 w, h = template.shape[1], template.shape[0]
-                mouse_positions["found"] = (x + w//2, y + h//2)
-                await message.answer(f"🔍 Объект найден! Координаты: ({x + w//2}, {y + h//2})")
+                mouse_positions["found"] = (x + w // 2, y + h // 2)
+                info(f"Объект найден на координатах ({x + w // 2}, {y + h // 2}) с точностью {max_val:.2f}", "attachments")
+                await message.answer(f"🔍 Объект найден! Координаты: ({x + w // 2}, {y + h // 2})")
             else:
+                warning(f"Объект не найден на экране (максимальная точность: {max_val:.2f})", "attachments")
                 await message.answer("❌ Объект не найден на экране")
+        except RuntimeError as e:
+            # Специальная обработка для headless-окружения
+            warning(f"Ошибка в headless-окружении: {e}", "attachments")
+            await message.answer(f"⚠️ {e}")
         except Exception as e:
+            error(f"Ошибка поиска по фото для пользователя {chat_id}: {e}", "attachments")
             await message.answer(f"⚠️ Ошибка поиска: {e}")
         finally:
             try:
@@ -106,6 +134,3 @@ async def handle_file(message: Message) -> None:
                     os.remove(screen_path)
             except Exception:
                 pass
-
-
-

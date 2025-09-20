@@ -10,6 +10,10 @@ numpy==1.26.4
 # System monitoring
 psutil==6.0.0
 
+# Configuration management
+pydantic==2.10.0
+pydantic-settings==2.6.0
+
 # Development dependencies
 pytest==8.0.0
 ruff==0.13.0

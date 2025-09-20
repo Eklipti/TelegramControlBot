@@ -9,7 +9,8 @@ import time
 from aiogram.filters import Command
 from aiogram.types import BufferedInputFile, Message
 
-from ..config import get_encoding
+from ..config import get_settings
+from ..core.logging import debug, error, info, warning
 from ..router import router
 
 
@@ -17,10 +18,12 @@ from ..router import router
 async def handle_find(message: Message) -> None:
     args = message.text.split(maxsplit=1)
     if len(args) < 2:
+        warning("Команда /find вызвана без параметров", "command_search")
         await message.answer("❌ Укажите параметры поиска после /find")
         return
 
     search_params = args[1]
+    info(f"Начало поиска файлов с параметрами: {search_params}", "command_search")
     msg = await message.answer("🔍 Поиск файлов...")
 
     async def run_async() -> None:
@@ -38,7 +41,7 @@ async def handle_find(message: Message) -> None:
                 elif param.startswith("size:"):
                     size_filter = param[5:]
                 elif param.startswith("ext:"):
-                    ext_filter = param[4:].split(',')
+                    ext_filter = param[4:].split(",")
                 elif param.startswith("root:"):
                     root_dir = param[5:]
                 elif param.startswith("limit:"):
@@ -52,8 +55,8 @@ async def handle_find(message: Message) -> None:
                     except Exception:
                         pass
 
-            is_windows = os.name == 'nt'
-            encoding = get_encoding()
+            is_windows = os.name == "nt"
+            encoding = get_settings().get_encoding()
             timed_out = False
             started_at = time.time()
 
@@ -69,7 +72,7 @@ async def handle_find(message: Message) -> None:
                         await message.bot.edit_message_text(
                             chat_id=msg.chat.id,
                             message_id=msg.message_id,
-                            text="⚠️ Укажите корень поиска: root:/path (на *nix обязательно)"
+                            text="⚠️ Укажите корень поиска: root:/path (на *nix обязательно)",
                         )
                     except Exception:
                         pass
@@ -108,18 +111,20 @@ async def handle_find(message: Message) -> None:
                 stderr_text = result.stderr or ""
             except subprocess.TimeoutExpired as e:
                 timed_out = True
-                stdout_text = (e.output or e.stdout or "") if hasattr(e, 'stdout') else (e.output or "")
-                stderr_text = (e.stderr or "") if hasattr(e, 'stderr') else ""
+                stdout_text = (e.output or e.stdout or "") if hasattr(e, "stdout") else (e.output or "")
+                stderr_text = (e.stderr or "") if hasattr(e, "stderr") else ""
 
-            raw_files = [f for f in stdout_text.split('\n') if f.strip()]
+            raw_files = [f for f in stdout_text.split("\n") if f.strip()]
 
             # Постфильтрация по расширениям (кроссплатформенно)
             files = raw_files
             if ext_filter:
-                normalized_exts = [e.lower().lstrip('.') for e in ext_filter]
+                normalized_exts = [e.lower().lstrip(".") for e in ext_filter]
+
                 def has_ext(path: str) -> bool:
                     lower = path.lower()
-                    return any(lower.endswith('.' + ext) or lower.endswith(ext) for ext in normalized_exts)
+                    return any(lower.endswith("." + ext) or lower.endswith(ext) for ext in normalized_exts)
+
                 files = [f for f in files if has_ext(f)]
 
             # Лимит результатов на уровне приложения
@@ -137,7 +142,7 @@ async def handle_find(message: Message) -> None:
 
             if files:
                 duration_ms = int((time.time() - started_at) * 1000)
-                stderr_lines = [line for line in (stderr_text or "").split('\n') if line.strip()]
+                stderr_lines = [line for line in (stderr_text or "").split("\n") if line.strip()]
                 summary_lines = [
                     "Search summary:",
                     f"- Root: {root_dir}",
@@ -154,26 +159,23 @@ async def handle_find(message: Message) -> None:
                     f"Results (up to {limit_count}):",
                 ]
                 detailed = "\n".join(summary_lines + files)
-                body_size_bytes = len(detailed.encode('utf-8'))
+                body_size_bytes = len(detailed.encode("utf-8"))
                 detailed = detailed + f"\n- Body bytes: {body_size_bytes}"
-                buf = BufferedInputFile(detailed.encode('utf-8'), filename='search_results.txt')
+                buf = BufferedInputFile(detailed.encode("utf-8"), filename="search_results.txt")
                 await message.bot.send_document(chat_id=msg.chat.id, document=buf)
         except Exception as e:
+
             def _mask(text: str) -> str:
                 # Hide sensitive error details: length + first/last char [[memory:4740490]]
                 if not text:
                     return "len=0"
                 return f"len={len(text)}, first='{text[0]}', last='{text[-1]}'"
+
             try:
                 await message.bot.edit_message_text(
-                    chat_id=msg.chat.id,
-                    message_id=msg.message_id,
-                    text=f"⚠️ Ошибка поиска: {_mask(str(e))}"
+                    chat_id=msg.chat.id, message_id=msg.message_id, text=f"⚠️ Ошибка поиска: {_mask(str(e))}"
                 )
             except Exception:
                 pass
 
     asyncio.create_task(run_async())
-
-
-

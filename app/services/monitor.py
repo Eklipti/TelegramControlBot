@@ -6,6 +6,8 @@ import os
 
 from aiogram import Bot
 
+from ..core.logging import debug, error, info, warning
+
 
 class FileMonitor:
     def __init__(self) -> None:
@@ -14,6 +16,7 @@ class FileMonitor:
         self._task: asyncio.Task | None = None
         self._lock = asyncio.Lock()
         self._subscribers: set[int] = set()
+        info("FileMonitor инициализирован", "monitor")
 
     async def start(self, bot: Bot, chat_id: int) -> None:
         self._subscribers.add(chat_id)
@@ -107,15 +110,21 @@ class FileMonitor:
                         try:
                             message_parts = []
                             if created:
-                                message_parts.append("📁 ➕ <b>Созданы:</b>\n" + "\n".join(f"• {p}" for p in created[:10]))
+                                message_parts.append(
+                                    "📁 ➕ <b>Созданы:</b>\n" + "\n".join(f"• {p}" for p in created[:10])
+                                )  # noqa: E501
                                 if len(created) > 10:
                                     message_parts.append(f"... и еще {len(created) - 10} файлов")
                             if changed:
-                                message_parts.append("📁 ✏️ <b>Изменены:</b>\n" + "\n".join(f"• {p}" for p in changed[:10]))
+                                message_parts.append(
+                                    "📁 ✏️ <b>Изменены:</b>\n" + "\n".join(f"• {p}" for p in changed[:10])
+                                )  # noqa: E501
                                 if len(changed) > 10:
                                     message_parts.append(f"... и еще {len(changed) - 10} файлов")
                             if deleted:
-                                message_parts.append("📁 ➖ <b>Удалены:</b>\n" + "\n".join(f"• {p}" for p in deleted[:10]))
+                                message_parts.append(
+                                    "📁 ➖ <b>Удалены:</b>\n" + "\n".join(f"• {p}" for p in deleted[:10])
+                                )  # noqa: E501
                                 if len(deleted) > 10:
                                     message_parts.append(f"... и еще {len(deleted) - 10} файлов")
 
@@ -128,6 +137,3 @@ class FileMonitor:
                 self._last_state = current_state
         except asyncio.CancelledError:
             return
-
-
-

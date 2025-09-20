@@ -12,7 +12,8 @@ from aiogram import F
 from aiogram.filters import Command
 from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message
 
-from ..paths_config import PATHS, save_paths
+from ..config.paths import get_paths_config
+from ..core.logging import error, info, warning
 from ..router import router
 
 active_processes: dict[str, subprocess.Popen] = {}
@@ -25,7 +26,7 @@ async def handle_on(message: Message) -> None:
         examples = (
             "Примеры использования:\n"
             "/on EvilBot\n"
-            "/on \"C:/my bot.py\" --debug\n"
+            '/on "C:/my bot.py" --debug\n'
             "/on notepad.exe C:/file.txt\n"
             "/on hidden:EvilBot_ALT\n"
             "/on admin:cmd.exe\n"
@@ -46,24 +47,28 @@ async def handle_on(message: Message) -> None:
         admin_mode = True
         input_arg = input_arg[6:]
 
-    if ' ' in input_arg:
-        parts = input_arg.split(' ', 1)
+    if " " in input_arg:
+        parts = input_arg.split(" ", 1)
         input_arg = parts[0]
-        arguments = shlex.split(parts[1]) if ' ' in parts[1] else [parts[1]]
+        arguments = shlex.split(parts[1]) if " " in parts[1] else [parts[1]]
 
     file_path: str | None = None
     custom_path = False
     process_key: str | None = None
     new_path_found = False
 
-    if input_arg in PATHS:
+    config = get_paths_config()
+    user_id = message.from_user.id
+    all_paths = config.get_all_paths(user_id)
+
+    if input_arg in all_paths:
         if input_arg == "8k":
-            for path in PATHS["8k"]:
+            for path in all_paths["8k"]:
                 if os.path.exists(path):
                     file_path = path
                     break
         else:
-            file_path = PATHS.get(input_arg)
+            file_path = all_paths.get(input_arg)
         process_key = input_arg
     else:
         # Сначала используем shutil.which() для поиска в PATH (наиболее надежный способ)
@@ -90,8 +95,8 @@ async def handle_on(message: Message) -> None:
                     break
 
             # Если не найден, пробуем с расширениями .exe, .bat, .cmd (Windows)
-            if not found and os.name == 'nt':
-                for ext in ['.exe', '.bat', '.cmd']:
+            if not found and os.name == "nt":
+                for ext in [".exe", ".bat", ".cmd"]:
                     if not input_arg.lower().endswith(ext):
                         for path_dir in os.environ.get("PATH", "").split(os.pathsep):
                             if not path_dir.strip():
@@ -146,27 +151,29 @@ async def handle_on(message: Message) -> None:
     creationflags = 0
 
     try:
-        if os.name == 'nt':
+        if os.name == "nt":
             if hidden_mode:
                 creationflags = subprocess.CREATE_NO_WINDOW
             else:
                 creationflags = subprocess.CREATE_NEW_CONSOLE
             if admin_mode:
-                await message.answer("⚠️ Режим admin требует локального подтверждения UAC и может не сработать из Telegram.")
-                if file_path.lower().endswith('.py'):
+                await message.answer(
+                    "⚠️ Режим admin требует локального подтверждения UAC и может не сработать из Telegram."
+                )  # noqa: E501
+                if file_path.lower().endswith(".py"):
                     cmd = ["runas", "/user:Administrator", sys.executable, file_path]
                 else:
                     cmd = ["runas", "/user:Administrator", file_path]
                 cmd.extend(arguments)
             else:
-                if file_path.lower().endswith('.py'):
+                if file_path.lower().endswith(".py"):
                     cmd = [sys.executable, file_path]
                     cmd.extend(arguments)
                 else:
                     cmd = [file_path]
                     cmd.extend(arguments)
         else:
-            if file_path.lower().endswith('.py'):
+            if file_path.lower().endswith(".py"):
                 cmd = [sys.executable, file_path]
             else:
                 cmd = [file_path]
@@ -187,18 +194,22 @@ async def handle_on(message: Message) -> None:
         if admin_mode:
             reply_msg += "\n🛡️ Режим: администратор"
 
-        if new_path_found and input_arg not in PATHS:
-            markup = InlineKeyboardMarkup(inline_keyboard=[
-                [InlineKeyboardButton(text="💾 Сохранить путь", callback_data=f"save_path:{input_arg}:{file_path}")]
-            ])
+        if new_path_found and input_arg not in all_paths:
+            markup = InlineKeyboardMarkup(
+                inline_keyboard=[
+                    [InlineKeyboardButton(text="💾 Сохранить путь", callback_data=f"save_path:{input_arg}:{file_path}")]
+                ]
+            )
             await message.answer(reply_msg, reply_markup=markup)
         else:
             await message.answer(reply_msg)
     except Exception as e:
         logging.exception("Ошибка запуска процесса")
         err = str(e)
-        error_msg = f"⚠️ Ошибка запуска: len={len(err)}, first='{err[0] if err else ''}', last='{err[-1] if err else ''}'"
-        if os.name == 'nt':
+        error_msg = (
+            f"⚠️ Ошибка запуска: len={len(err)}, first='{err[0] if err else ''}', last='{err[-1] if err else ''}'"  # noqa: E501
+        )
+        if os.name == "nt":
             if "не является приложением Win32" in str(e):
                 try:
                     os.startfile(file_path)  # type: ignore[attr-defined]
@@ -219,12 +230,7 @@ async def handle_processes(message: Message) -> None:
     for name, proc in active_processes.items():
         status = "🟢 Активен" if proc.poll() is None else "⚪ Завершен"
         pid_line = f"PID: {proc.pid}" if proc.pid else "PID: N/A"
-        response += (
-            f"🔹 <b>{os.path.basename(name)}</b>\n"
-            f"• Статус: {status}\n"
-            f"• {pid_line}\n"
-            f"• Путь: {name}\n\n"
-        )
+        response += f"🔹 <b>{os.path.basename(name)}</b>\n• Статус: {status}\n• {pid_line}\n• Путь: {name}\n\n"
     await message.answer(response)
 
 
@@ -237,13 +243,20 @@ async def handle_off(message: Message) -> None:
             status = "🟢 Активен" if proc.poll() is None else "⚪ Завершен"
             active_list.append(f"- {name} ({status})")
         response = "📋 Активные процессы:\n" + ("\n".join(active_list) if active_list else "ℹ️ Нет активных процессов")
-        response += "\n\nℹ️ Используйте /off <имя> или /off all"
-        await message.answer(response)
+        response += "\n\nℹ️ Используйте /off &lt;название&gt; или /off all"
+        try:
+            await message.answer(response)
+        except Exception as e:
+            error(f"Ошибка отправки сообщения в handle_off: {e}", "error")
+            # Отправляем упрощенное сообщение без HTML-тегов
+            simple_response = "📋 Активные процессы:\n" + ("\n".join(active_list) if active_list else "ℹ️ Нет активных процессов")
+            simple_response += "\n\nℹ️ Используйте /off &lt;название&gt; или /off all"
+            await message.answer(simple_response)
         return
 
     target = args[1].strip()
     if target.lower() == "all":
-        from ..security import DANGEROUS_ACTIONS, get_confirmation_manager
+        from ..core.security import DANGEROUS_ACTIONS, get_confirmation_manager
 
         manager = get_confirmation_manager()
         action_config = DANGEROUS_ACTIONS["process_stop_all"]
@@ -251,12 +264,9 @@ async def handle_off(message: Message) -> None:
         await manager.create_confirmation(
             chat_id=message.chat.id,
             action_type="process_stop_all",
-            action_data={
-                "action_type": "process_stop_all",
-                "action_data": {"target": "all"}
-            },
+            action_data={"action_type": "process_stop_all", "action_data": {"target": "all"}},
             warning_message=action_config["warning"],
-            timeout=action_config["timeout"]
+            timeout=action_config["timeout"],
         )
         return
 
@@ -285,7 +295,7 @@ async def handle_off(message: Message) -> None:
         await message.answer(f"ℹ️ Процесс '{matched_name}' уже завершен")
         return
 
-    from ..security import DANGEROUS_ACTIONS, get_confirmation_manager
+    from ..core.security import DANGEROUS_ACTIONS, get_confirmation_manager
 
     manager = get_confirmation_manager()
     action_config = DANGEROUS_ACTIONS["process_stop"]
@@ -293,26 +303,24 @@ async def handle_off(message: Message) -> None:
     await manager.create_confirmation(
         chat_id=message.chat.id,
         action_type="process_stop",
-        action_data={
-            "action_type": "process_stop",
-            "action_data": {"target": target},
-            "target": target
-        },
-        warning_message=action_config["warning"].format(action_data=f"Остановка процесса: {matched_name} (PID: {matched_proc.pid})"),
-        timeout=action_config["timeout"]
+        action_data={"action_type": "process_stop", "action_data": {"target": target}, "target": target},
+        warning_message=action_config["warning"].format(
+            action_data=f"Остановка процесса: {matched_name} (PID: {matched_proc.pid})"
+        ),  # noqa: E501
+        timeout=action_config["timeout"],
     )
 
 
-@router.callback_query(F.data.startswith('save_path'))
+@router.callback_query(F.data.startswith("save_path"))
 async def handle_save_path_callback(call: CallbackQuery) -> None:
     try:
-        _, name, path = call.data.split(':', 2)
-        PATHS[name] = path
-        save_paths(PATHS)
-        await call.message.edit_text(f"✅ Путь сохранен: {name} → {path}")
+        _, name, path = call.data.split(":", 2)
+        config = get_paths_config()
+        user_id = call.from_user.id
+        if config.add_user_path(user_id, name, path):
+            await call.message.edit_text(f"✅ Путь сохранен: {name} → {path}")
+        else:
+            await call.answer("Ошибка: путь не существует", show_alert=True)
     except Exception:
         logging.exception("Ошибка сохранения пути")
         await call.answer("Ошибка сохранения", show_alert=True)
-
-
-

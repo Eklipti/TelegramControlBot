@@ -4,29 +4,58 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "controlbot"
-version = "2.0.0"
-description = "Telegram bot for remote PC control"
+version = "2.2.1"
+description = "A powerful Telegram bot for remote computer management through Telegram using Aiogram 3. Provides comprehensive remote control capabilities for Windows systems with a focus on security and ease of use."
 authors = [
     {name = "ControlBot contributors", email = "controlbot@example.com"}
 ]
-license = {text = "GNU Affero General Public License v3.0 or later"}
+license = "AGPL-3.0-or-later"
 readme = "README.md"
 requires-python = ">=3.11"
+dependencies = [
+    "aiogram==3.17.0",
+    "Pillow==10.4.0",
+    "pyautogui==0.9.54",
+    "opencv-python==4.10.0.84",
+    "numpy==1.26.4",
+    "psutil==6.0.0",
+    "pydantic==2.10.0",
+    "pydantic-settings==2.6.0",
+]
 classifiers = [
     "Development Status :: 4 - Beta",
     "Intended Audience :: End Users/Desktop",
-    "License :: OSI Approved :: GNU Affero General Public License v3 or later (AGPLv3+)",
+    "Intended Audience :: System Administrators",
     "Operating System :: Microsoft :: Windows",
     "Programming Language :: Python :: 3",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Topic :: Communications :: Chat",
     "Topic :: System :: Systems Administration",
+    "Topic :: System :: Monitoring",
+    "Topic :: Desktop Environment :: Window Managers",
+    "Topic :: Internet :: WWW/HTTP :: Dynamic Content",
 ]
+
+[tool.setuptools.packages.find]
+include = ["app*"]
+
+[tool.setuptools.package-data]
+"*" = ["*.json", "*.md", "*.txt", "*.bat"]
+
+[project.optional-dependencies]
+dev = [
+    "pytest==8.0.0",
+    "ruff==0.13.0",
+    "mypy==1.18.1",
+]
+
+[project.scripts]
+controlbot = "app.app:main"
 
 [tool.ruff]
 target-version = "py311"
-line-length = 100
+line-length = 120
 
 [tool.ruff.lint]
 select = [
@@ -81,12 +110,15 @@ python_files = ["test_*.py"]
 python_classes = ["Test*"]
 python_functions = ["test_*"]
 addopts = [
-    "-v",
+    "-q",
     "--tb=short",
     "--strict-markers",
     "--disable-warnings",
 ]
 markers = [
     "smoke: marks tests as smoke tests",
+    "unit: marks tests as unit tests",
     "integration: marks tests as integration tests",
+    "gui: marks tests that require GUI modules (pyautogui, cv2, PIL)",
+    "headless: marks tests that should run in headless environments",
 ]

@@ -1,0 +1,325 @@
+# SPDX-FileCopyrightText: 2025 ControlBot contributors
+# SPDX-License-Identifier: AGPL-3.0-or-later
+
+"""
+Централизованная система логирования с экспортом в разные форматы.
+"""
+
+import asyncio
+import csv
+import json
+import logging
+import xml.etree.ElementTree as ET
+from datetime import datetime, timedelta
+from pathlib import Path
+from typing import Any, Dict, List, Optional
+
+# Удален импорт для избежания циклической зависимости
+
+
+class CentralizedLogger:
+    """Централизованная система логирования с возможностью экспорта."""
+    
+    def __init__(self, logs_dir: str = "./logs", export_dir: str = "./exports"):
+        self.logs_dir = Path(logs_dir)
+        self.export_dir = Path(export_dir)
+        self.export_dir.mkdir(exist_ok=True)
+        
+        # Централизованное хранилище логов
+        self.centralized_logs: List[Dict[str, Any]] = []
+        self.max_logs_in_memory = 10000  # Максимум логов в памяти
+        
+        # Статистика логирования
+        self.log_stats = {
+            "total_logs": 0,
+            "logs_by_level": {},
+            "logs_by_logger": {},
+            "errors_count": 0,
+            "warnings_count": 0
+        }
+        
+        # Логирование инициализации через стандартный logging
+        self._logger = logging.getLogger("centralized_logging")
+        self._logger.info("Централизованная система логирования инициализирована")
+    
+    def add_log(
+        self, 
+        level: str, 
+        message: str, 
+        logger_name: str = "main",
+        extra_data: Optional[Dict[str, Any]] = None
+    ) -> None:
+        """Добавляет лог в централизованное хранилище."""
+        # TRACE логирование через стандартный logging
+        self._logger.log(5, f"ENTER: CentralizedLogger.add_log(args=({level}, {message}, {logger_name}))")
+        
+        log_entry = {
+            "timestamp": datetime.now().isoformat(),
+            "level": level,
+            "message": message,
+            "logger_name": logger_name,
+            "extra_data": extra_data or {}
+        }
+        
+        # Добавляем в централизованное хранилище
+        self.centralized_logs.append(log_entry)
+        
+        # Ограничиваем размер в памяти
+        if len(self.centralized_logs) > self.max_logs_in_memory:
+            self.centralized_logs = self.centralized_logs[-self.max_logs_in_memory:]
+        
+        # Обновляем статистику
+        self.log_stats["total_logs"] += 1
+        self.log_stats["logs_by_level"][level] = self.log_stats["logs_by_level"].get(level, 0) + 1
+        self.log_stats["logs_by_logger"][logger_name] = self.log_stats["logs_by_logger"].get(logger_name, 0) + 1
+        
+        if level == "ERROR":
+            self.log_stats["errors_count"] += 1
+        elif level == "WARNING":
+            self.log_stats["warnings_count"] += 1
+        
+        self._logger.log(5, f"EXIT:  CentralizedLogger.add_log -> success")
+    
+    def get_logs(
+        self, 
+        level: Optional[str] = None,
+        logger_name: Optional[str] = None,
+        start_time: Optional[datetime] = None,
+        end_time: Optional[datetime] = None,
+        limit: int = 1000
+    ) -> List[Dict[str, Any]]:
+        """Получает логи с фильтрацией."""
+        self._logger.log(5, f"ENTER: CentralizedLogger.get_logs(args=({level}, {logger_name}, {limit}))")
+        
+        filtered_logs = self.centralized_logs.copy()
+        
+        # Фильтрация по уровню
+        if level:
+            filtered_logs = [log for log in filtered_logs if log["level"] == level]
+        
+        # Фильтрация по логгеру
+        if logger_name:
+            filtered_logs = [log for log in filtered_logs if log["logger_name"] == logger_name]
+        
+        # Фильтрация по времени
+        if start_time:
+            filtered_logs = [log for log in filtered_logs if datetime.fromisoformat(log["timestamp"]) >= start_time]
+        
+        if end_time:
+            filtered_logs = [log for log in filtered_logs if datetime.fromisoformat(log["timestamp"]) <= end_time]
+        
+        # Ограничение количества
+        result = filtered_logs[-limit:] if limit > 0 else filtered_logs
+        
+        self._logger.log(5, f"EXIT:  CentralizedLogger.get_logs -> {len(result)} logs")
+        return result
+    
+    def get_log_statistics(self) -> Dict[str, Any]:
+        """Возвращает статистику логирования."""
+        self._logger.log(5, f"ENTER: CentralizedLogger.get_log_statistics()")
+        
+        stats = self.log_stats.copy()
+        
+        # Добавляем дополнительную информацию
+        if self.centralized_logs:
+            latest_log = self.centralized_logs[-1]
+            oldest_log = self.centralized_logs[0]
+            stats["latest_log_time"] = latest_log["timestamp"]
+            stats["oldest_log_time"] = oldest_log["timestamp"]
+        
+        self._logger.log(5, f"EXIT:  CentralizedLogger.get_log_statistics -> success")
+        return stats
+    
+    async def export_to_json(self, filename: Optional[str] = None) -> str:
+        """Экспортирует логи в JSON формат."""
+        self._logger.log(5, f"ENTER: CentralizedLogger.export_to_json()")
+        
+        try:
+            if not filename:
+                filename = f"logs_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json"
+            
+            export_path = self.export_dir / filename
+            
+            export_data = {
+                "export_info": {
+                    "timestamp": datetime.now().isoformat(),
+                    "total_logs": len(self.centralized_logs),
+                    "export_format": "json"
+                },
+                "statistics": self.get_log_statistics(),
+                "logs": self.centralized_logs
+            }
+            
+            with open(export_path, 'w', encoding='utf-8') as f:
+                json.dump(export_data, f, ensure_ascii=False, indent=2)
+            
+            self._logger.info(f"Логи экспортированы в JSON: {export_path}")
+            self._logger.log(5, f"EXIT:  CentralizedLogger.export_to_json -> {export_path}")
+            return str(export_path)
+            
+        except Exception as e:
+            self._logger.error(f"Ошибка экспорта в JSON: {e}")
+            self._logger.log(5, f"EXIT:  CentralizedLogger.export_to_json -> error: {e}")
+            raise
+    
+    async def export_to_csv(self, filename: Optional[str] = None) -> str:
+        """Экспортирует логи в CSV формат."""
+        self._logger.log(5, f"ENTER: CentralizedLogger.export_to_csv()")
+        
+        try:
+            if not filename:
+                filename = f"logs_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv"
+            
+            export_path = self.export_dir / filename
+            
+            with open(export_path, 'w', newline='', encoding='utf-8') as f:
+                if not self.centralized_logs:
+                    self._logger.log(5, f"EXIT:  CentralizedLogger.export_to_csv -> empty")
+                    return str(export_path)
+                
+                writer = csv.DictWriter(f, fieldnames=['timestamp', 'level', 'logger_name', 'message', 'extra_data'])
+                writer.writeheader()
+                
+                for log in self.centralized_logs:
+                    csv_log = {
+                        'timestamp': log['timestamp'],
+                        'level': log['level'],
+                        'logger_name': log['logger_name'],
+                        'message': log['message'],
+                        'extra_data': json.dumps(log['extra_data'], ensure_ascii=False)
+                    }
+                    writer.writerow(csv_log)
+            
+            self._logger.info(f"Логи экспортированы в CSV: {export_path}")
+            self._logger.log(5, f"EXIT:  CentralizedLogger.export_to_csv -> {export_path}")
+            return str(export_path)
+            
+        except Exception as e:
+            self._logger.error(f"Ошибка экспорта в CSV: {e}")
+            self._logger.log(5, f"EXIT:  CentralizedLogger.export_to_csv -> error: {e}")
+            raise
+    
+    async def export_to_xml(self, filename: Optional[str] = None) -> str:
+        """Экспортирует логи в XML формат."""
+        self._logger.log(5, f"ENTER: CentralizedLogger.export_to_xml()")
+        
+        try:
+            if not filename:
+                filename = f"logs_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xml"
+            
+            export_path = self.export_dir / filename
+            
+            # Создаем корневой элемент
+            root = ET.Element("logs")
+            root.set("export_timestamp", datetime.now().isoformat())
+            root.set("total_logs", str(len(self.centralized_logs)))
+            
+            # Добавляем статистику
+            stats_elem = ET.SubElement(root, "statistics")
+            for key, value in self.get_log_statistics().items():
+                stat_elem = ET.SubElement(stats_elem, key)
+                stat_elem.text = str(value)
+            
+            # Добавляем логи
+            logs_elem = ET.SubElement(root, "log_entries")
+            for log in self.centralized_logs:
+                log_elem = ET.SubElement(logs_elem, "log")
+                log_elem.set("timestamp", log['timestamp'])
+                log_elem.set("level", log['level'])
+                log_elem.set("logger", log['logger_name'])
+                
+                message_elem = ET.SubElement(log_elem, "message")
+                message_elem.text = log['message']
+                
+                if log['extra_data']:
+                    extra_elem = ET.SubElement(log_elem, "extra_data")
+                    extra_elem.text = json.dumps(log['extra_data'], ensure_ascii=False)
+            
+            # Записываем XML
+            tree = ET.ElementTree(root)
+            tree.write(export_path, encoding='utf-8', xml_declaration=True)
+            
+            self._logger.info(f"Логи экспортированы в XML: {export_path}")
+            self._logger.log(5, f"EXIT:  CentralizedLogger.export_to_xml -> {export_path}")
+            return str(export_path)
+            
+        except Exception as e:
+            self._logger.error(f"Ошибка экспорта в XML: {e}")
+            self._logger.log(5, f"EXIT:  CentralizedLogger.export_to_xml -> error: {e}")
+            raise
+    
+    async def export_to_text(self, filename: Optional[str] = None) -> str:
+        """Экспортирует логи в текстовый формат."""
+        self._logger.log(5, f"ENTER: CentralizedLogger.export_to_text()")
+        
+        try:
+            if not filename:
+                filename = f"logs_export_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt"
+            
+            export_path = self.export_dir / filename
+            
+            with open(export_path, 'w', encoding='utf-8') as f:
+                f.write(f"ControlBot Logs Export\n")
+                f.write(f"Generated: {datetime.now().isoformat()}\n")
+                f.write(f"Total logs: {len(self.centralized_logs)}\n")
+                f.write("=" * 50 + "\n\n")
+                
+                for log in self.centralized_logs:
+                    timestamp = datetime.fromisoformat(log['timestamp']).strftime('%Y-%m-%d %H:%M:%S')
+                    f.write(f"[{timestamp}] {log['level']:8} | {log['logger_name']:15} | {log['message']}\n")
+                    
+                    if log['extra_data']:
+                        f.write(f"  Extra data: {json.dumps(log['extra_data'], ensure_ascii=False)}\n")
+                    
+                    f.write("\n")
+            
+            self._logger.info(f"Логи экспортированы в TXT: {export_path}")
+            self._logger.log(5, f"EXIT:  CentralizedLogger.export_to_text -> {export_path}")
+            return str(export_path)
+            
+        except Exception as e:
+            self._logger.error(f"Ошибка экспорта в TXT: {e}")
+            self._logger.log(5, f"EXIT:  CentralizedLogger.export_to_text -> error: {e}")
+            raise
+    
+    async def cleanup_old_exports(self, days_to_keep: int = 30) -> None:
+        """Очищает старые файлы экспорта."""
+        self._logger.log(5, f"ENTER: CentralizedLogger.cleanup_old_exports(args=({days_to_keep},))")
+        
+        try:
+            cutoff_date = datetime.now() - timedelta(days=days_to_keep)
+            deleted_count = 0
+            
+            for file_path in self.export_dir.glob("*"):
+                if file_path.is_file():
+                    file_time = datetime.fromtimestamp(file_path.stat().st_mtime)
+                    if file_time < cutoff_date:
+                        file_path.unlink()
+                        deleted_count += 1
+            
+            self._logger.info(f"Удалено {deleted_count} старых файлов экспорта")
+            self._logger.log(5, f"EXIT:  CentralizedLogger.cleanup_old_exports -> deleted {deleted_count} files")
+            
+        except Exception as e:
+            self._logger.error(f"Ошибка очистки старых экспортов: {e}")
+            self._logger.log(5, f"EXIT:  CentralizedLogger.cleanup_old_exports -> error: {e}")
+
+
+# Глобальный экземпляр централизованного логгера
+centralized_logger: Optional[CentralizedLogger] = None
+
+
+def init_centralized_logging(logs_dir: str = "./logs", export_dir: str = "./exports") -> CentralizedLogger:
+    """Инициализирует централизованную систему логирования."""
+    global centralized_logger
+    if centralized_logger is None:
+        centralized_logger = CentralizedLogger(logs_dir, export_dir)
+    return centralized_logger
+
+
+def get_centralized_logger() -> CentralizedLogger:
+    """Возвращает глобальный централизованный логгер."""
+    global centralized_logger
+    if centralized_logger is None:
+        centralized_logger = CentralizedLogger()
+    return centralized_logger
