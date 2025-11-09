@@ -18,6 +18,7 @@ from .router                        import router
 from .services.lifecycle            import LifecycleManager
 from .services.metrics              import init_metrics
 from .services.centralized_logging  import init_centralized_logging
+from .config.paths                  import init_paths_config
 
 
 async def _run() -> None:
@@ -39,6 +40,9 @@ async def _run() -> None:
     init_metrics(str(settings.get_data_directory()))
     init_centralized_logging(str(settings.get_logs_directory()), str(settings.get_exports_directory()))
     info("Система мониторинга и метрик инициализирована", "app")
+    
+    paths_config = init_paths_config()
+    info(f"Система путей инициализирована. Загружено {len(paths_config.default_paths)} системных путей", "app")
 
     allowed_filter = AllowedUserFilter(settings.get_allowed_user_ids())
     private_filter = PrivateChatFilter()

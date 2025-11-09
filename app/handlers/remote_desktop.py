@@ -6,11 +6,11 @@ import io
 import logging
 import time
 
+import pyautogui
 from aiogram.exceptions import TelegramRetryAfter
 from aiogram.filters import Command
 from aiogram.types import BufferedInputFile, InputMediaPhoto, Message
 
-from ..gui_utils import safe_import_pyautogui
 from ..router import router
 
 RDP_SESSIONS: dict[int, dict] = {}
@@ -23,7 +23,6 @@ async def _rdp_stream(bot, chat_id: int, stop_event: asyncio.Event, fps: int) ->
     MIN_EDIT_INTERVAL = 0.4  # Минимум 400мс между edit_message_media
 
     try:
-        pyautogui = safe_import_pyautogui()
         while not stop_event.is_set():
             try:
                 start_time = time.time()
@@ -70,10 +69,6 @@ async def _rdp_stream(bot, chat_id: int, stop_event: asyncio.Event, fps: int) ->
                 elapsed = time.time() - start_time
                 sleep_time = max(0, interval - elapsed)
                 await asyncio.sleep(sleep_time)
-            except RuntimeError as e:
-                logging.error(f"GUI недоступен в RDP стриме: {e}")
-                await bot.send_message(chat_id, f"⚠️ {e}")
-                break
             except Exception:
                 logging.exception("Ошибка в RDP стриме")
                 await asyncio.sleep(1)
@@ -88,7 +83,7 @@ async def _rdp_stream(bot, chat_id: int, stop_event: asyncio.Event, fps: int) ->
 
                 try:
                     screenshot = await asyncio.to_thread(pyautogui.screenshot)
-                except RuntimeError:
+                except Exception:
                     # GUI недоступен, пропускаем финальное обновление
                     return
                 img_byte_arr = io.BytesIO()

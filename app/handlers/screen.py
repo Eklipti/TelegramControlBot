@@ -3,10 +3,11 @@
 
 import io
 
+import pyautogui
 from aiogram.filters import Command
 from aiogram.types import BufferedInputFile, Message
+from PIL import ImageGrab
 
-from ..gui_utils import lazy_import_pil, lazy_import_pyautogui
 from ..router import router
 from ..state import screen_find_requests
 
@@ -17,18 +18,10 @@ async def handle_screen(message: Message) -> None:
         await message.answer("⚠️ Выбор конкретного окна не поддерживается. Делаю скриншот всего экрана.")
 
     try:
-        pyautogui = lazy_import_pyautogui()
         screenshot = pyautogui.screenshot()
-    except RuntimeError as e:
-        await message.answer(f"⚠️ {e}")
-        return
     except Exception:
         try:
-            ImageGrab = lazy_import_pil()
             screenshot = ImageGrab.grab()
-        except RuntimeError as e:
-            await message.answer(f"⚠️ {e}")
-            return
         except Exception as e:
             await message.answer(f"⚠️ Ошибка создания скриншота: {e}")
             return

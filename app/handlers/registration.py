@@ -2,11 +2,14 @@
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
 """
-Единое место регистрации всех handlers для избежания циклических импортов
+Единое место регистрации всех handlers для избежания циклических импортов.
+Все handlers регистрируются через декораторы @router.message/@router.callback_query
+в своих модулях, поэтому импорта модулей достаточно для их активации.
 """
 
 from aiogram import Dispatcher
 
+# Импортируем все handlers для активации декораторов
 from . import (
     attachments,
     auth,
@@ -16,6 +19,7 @@ from . import (
     files,
     help,
     logs_export,
+    menu,
     monitor,
     mouse_keyboard,
     paths_handlers,
@@ -29,24 +33,12 @@ from . import (
 
 
 def register_all_handlers(dp: Dispatcher) -> None:
-    """Регистрирует все handlers в Dispatcher."""
-    # Импортируем handlers в правильном порядке для избежания циклических зависимостей
+    """
+    Регистрирует все handlers в Dispatcher.
     
-    # Базовые handlers (без зависимостей)
-    from . import auth, cancel, help, security_handlers
-    
-    # Системные handlers
-    from . import system, files, processes, monitor
-    
-    # GUI handlers (с ленивой загрузкой)
-    from . import attachments, mouse_keyboard, screen, remote_desktop
-    
-    # Специализированные handlers
-    from . import cmd, command_search, paths_handlers
-    
-    # Мониторинг и статистика
-    from . import stats, logs_export
-    
-    # Все handlers уже зарегистрированы через декораторы @router.message/@router.callback_query
-    # в своих модулях, поэтому дополнительная регистрация не требуется
+    Фактически, все handlers уже зарегистрированы через декораторы при импорте модулей выше.
+    Эта функция существует для явного вызова из app.py и обеспечения
+    правильного порядка инициализации.
+    """
+    # Handlers уже зарегистрированы через декораторы при импорте
     pass

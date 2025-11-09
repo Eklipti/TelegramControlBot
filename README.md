@@ -1,156 +1,197 @@
-# ControlBot v2.2.1 - Telegram Bot for Remote PC Control
+# ControlBot v3.1.0 - Telegram-бот для удалённого управления ПК
 
-A powerful Telegram bot for remote computer management through Telegram using Aiogram 3. ControlBot provides comprehensive remote control capabilities for Windows systems with a focus on security and ease of use.
+Telegram-бот для удалённого управления компьютером через Telegram с использованием Aiogram 3. ControlBot предоставляет комплексные возможности удалённого управления для Windows-систем с акцентом на безопасность, мониторинг и удобство использования.
 
-## ⚠️ Important Security Notice
+## 🆕 Что нового в v3.1.0
 
-**USE THIS BOT ONLY ON YOUR OWN DEVICES AND WITH PROPER PERMISSION!**
+- **📱 Система inline-меню** - интерактивная навигация через inline-кнопки вместо прямого ввода команд
+- **📄 Многостраничное меню** - удобное разделение команд на 3 страницы
+- **📁 Категории команд** - группировка по функциональности (Процессы, Пути, Файлы, Мониторинг и др.)
+- **⚡ Быстрый запуск команд** - выполнение команд в одно нажатие через inline-кнопки
+- **📖 Справка по категориям** - полная документация по группам команд
+- **🔄 Обратная совместимость** - все команды продолжают работать через прямой ввод
 
-This bot provides remote control capabilities that can be potentially dangerous if misused. Only use it on:
-- Your own personal computers
-- Devices you have explicit permission to control
-- Trusted networks and environments
+### Что нового в v3.0.0
 
-**Never use this bot on devices you don't own or without proper authorization.**
+- **🔄 Упрощение архитектуры** - удален headless-режим и все связанные с ним компоненты
+- **⚡ Прямые импорты** - замена ленивых импортов на прямые для лучшей производительности
+- **🧹 Очистка кода** - удаление неиспользуемых утилит и настроек
+- **📦 Упрощение конфигурации** - удалена настройка GUI_ENABLED
 
-## ⚖️ Legal & Ethical Use
+### Важно
+Начиная с версии 3.0.0, для работы бота **всегда требуется GUI-окружение** с доступным дисплеем. Headless-режим больше не поддерживается.
 
-**This bot is intended for administering your own machines only.**
+## ⚠️ Важное предупреждение о безопасности
 
-### ✅ Permitted Use
-- **Personal devices** you own and control
-- **Work computers** with explicit employer permission
-- **Family devices** with explicit owner consent
-- **Educational purposes** in controlled environments
+**ИСПОЛЬЗУЙТЕ ЭТОТ БОТ ТОЛЬКО НА СВОИХ УСТРОЙСТВАХ И С ПРАВИЛЬНЫМИ РАЗРЕШЕНИЯМИ!**
 
-### ❌ Prohibited Use
-- **Unauthorized access** to any system without explicit permission
-- **Corporate networks** without written authorization
-- **Public or shared computers** without owner consent
-- **Any malicious activities** or unauthorized surveillance
-- **Violation of local laws** or regulations
+Этот бот предоставляет возможности удалённого управления, которые могут быть потенциально опасными при неправильном использовании. Используйте его только на:
+- Ваших личных компьютерах
+- Устройствах, на которые у вас есть явное разрешение на управление
+- Доверенных сетях и окружениях
 
-### 🚨 Legal Disclaimer
-- **You are solely responsible** for your use of this software
-- **Unauthorized access** to computer systems is illegal in most jurisdictions
-- **Always obtain explicit permission** before using on any device
-- **Respect privacy and security** of others
-- **Use at your own risk** - developers assume no liability
+**Никогда не используйте этот бот на устройствах, которыми вы не владеете или без соответствующего разрешения.**
 
-**By using this software, you agree to use it ethically and legally.**
+## ⚖️ Правовое и этичное использование
 
-## 📁 Project Structure
+**Этот бот предназначен для администрирования только ваших собственных машин.**
+
+### ✅ Разрешенное использование
+- **Личные устройства**, которыми вы владеете и управляете
+- **Рабочие компьютеры** с явного разрешения работодателя
+- **Семейные устройства** с явного согласия владельца
+- **Образовательные цели** в контролируемых средах
+
+### ❌ Запрещенное использование
+- **Несанкционированный доступ** к любым системам без явного разрешения
+- **Корпоративные сети** без письменного разрешения
+- **Общественные или общие компьютеры** без согласия владельца
+- **Любая вредоносная деятельность** или несанкционированное наблюдение
+- **Нарушение местных законов** или правил
+
+### 🚨 Правовое предупреждение
+- **Вы несете полную ответственность** за использование данного ПО
+- **Несанкционированный доступ** к компьютерным системам незаконен в большинстве юрисдикций
+- **Всегда получайте явное разрешение** перед использованием на любом устройстве
+- **Уважайте конфиденциальность и безопасность** других
+- **Используйте на свой страх и риск** - разработчики не несут ответственности
+
+**Используя данное ПО, вы соглашаетесь использовать его этично и законно.**
+
+## 📁 Структура проекта
 
 ```
-ControlBot_v2/
-├── app/                    # Main application code
-│   ├── config/            # Configuration modules (Pydantic Settings)
-│   ├── core/              # Core functionality (security, etc.)
-│   ├── handlers/          # Telegram bot handlers
-│   └── services/          # Business logic services
-├── docs/                  # Documentation
-├── scripts/               # Platform-specific scripts
-│   └── windows/           # Windows batch files
-├── tests/                 # Test files
-└── main.py               # Application entry point
+TelegramControlBot/
+├── app/                           # Основной код приложения
+│   ├── config/                    # Конфигурация (Pydantic Settings)
+│   │   ├── __init__.py           # Настройки приложения (Settings)
+│   │   └── paths.py              # Конфигурация путей
+│   ├── core/                      # Основная логика
+│   │   ├── centralized_handler.py  # Централизованный обработчик логирования
+│   │   ├── logging.py            # Система логирования
+│   │   ├── metrics_decorator.py  # Декораторы для метрик
+│   │   └── security.py           # Система безопасности
+│   ├── handlers/                  # Обработчики команд Telegram
+│   │   ├── attachments.py        # Обработка файлов и фото
+│   │   ├── auth.py               # Аутентификация
+│   │   ├── cancel.py             # Отмена операций
+│   │   ├── cmd.py                # Выполнение команд
+│   │   ├── command_search.py     # Поиск команд
+│   │   ├── files.py              # Работа с файлами
+│   │   ├── help.py               # Справка
+│   │   ├── logs_export.py        # Экспорт логов
+│   │   ├── menu.py               # Система inline-меню
+│   │   ├── monitor.py            # Мониторинг
+│   │   ├── mouse_keyboard.py     # Мышь и клавиатура
+│   │   ├── paths_handlers.py     # Управление путями
+│   │   ├── processes.py          # Управление процессами
+│   │   ├── registration.py       # Регистрация обработчиков
+│   │   ├── remote_desktop.py     # Удаленный рабочий стол
+│   │   ├── screen.py             # Скриншоты
+│   │   ├── security_handlers.py  # Обработчики безопасности
+│   │   ├── stats.py              # Статистика и метрики
+│   │   └── system.py             # Системные команды
+│   ├── middleware/                # Middleware для логирования
+│   │   └── logging_middleware.py # Middleware для логирования взаимодействий
+│   ├── services/                  # Сервисы (жизненный цикл, мониторинг, метрики)
+│   │   ├── centralized_logging.py  # Централизованное логирование
+│   │   ├── lifecycle.py           # Управление жизненным циклом
+│   │   ├── metrics.py             # Система метрик
+│   │   ├── monitor.py             # Мониторинг файлов
+│   │   └── process_stream.py      # Потоковая обработка команд
+│   ├── help_texts.py              # Тексты справки для команд
+│   ├── router.py                  # Роутер Aiogram
+│   ├── state.py                   # Состояния FSM
+│   └── app.py                     # Главный файл приложения
+├── docs/                           # Документация
+│   ├── RU/                        # Русская документация
+│   │   ├── all_commands.md        # Справочник команд
+│   │   ├── CHANGELOG.md           # История изменений
+│   │   ├── CONFIG.md              # Конфигурация
+│   │   ├── DEVELOPMENT.md         # Руководство разработчика
+│   │   ├── FUTURE.md              # Планы на будущее
+│   │   ├── logging_levels.md      # Уровни логирования
+│   │   ├── MIGRATION_v2.2.md      # Миграция на v2.2
+│   │   └── RISKS_FIXED_v2.2.1.md  # Исправленные риски
+│   └── SECURITY.md                # Политика безопасности
+├── scripts/                        # Платформо-специфичные скрипты
+│   └── windows/                   # Windows скрипты
+│       └── ControlBot.bat         # Запуск бота на Windows
+├── tests/                          # Тесты
+│   ├── __init__.py
+│   └── test_config.py             # Тесты конфигурации
+├── jsons/                          # JSON конфигурации
+│   └── DEFAULT_PATHS.json         # Пути по умолчанию
+├── logs/                           # Логи приложения
+├── data/                           # Данные и метрики
+├── exports/                        # Экспортированные данные
+├── .env.example                    # Пример конфигурации
+├── requirements.txt                # Зависимости Python
+├── setup.bat                       # Автоматическая настройка (Windows)
+├── start.bat                       # Запуск бота (Windows)
+├── install_autostart.bat           # Установка в автозагрузку (Windows)
+├── uninstall_autostart.bat         # Удаление из автозагрузки (Windows)
+└── main.py                         # Точка входа
 ```
 
-## 📚 Documentation
+## 🚀 Быстрый старт
 
-- **[Russian Documentation](docs/README_ru.md)** - Detailed installation and usage guide
-- **[Command Reference](docs/all_commands.md)** - Complete list of all commands with examples
-- **[Configuration Guide](docs/CONFIG.md)** - Pydantic Settings configuration
-- **[Future Plans](docs/FUTURE.md)** - Upcoming features and improvements
-- **[Testing Guide](docs/TESTING.md)** - Testing and development information
-- **[Headless Mode](docs/HEADLESS.md)** - Running in headless environments
-- **[Development Guide](docs/DEVELOPMENT.md)** - Developer documentation
-- **[Security Policy](docs/SECURITY.md)** - Security guidelines and reporting
-- **[Changelog](docs/CHANGELOG.md)** - Version history and changes
-- **[Migration Guide v2.2](docs/MIGRATION_v2.2.md)** - Migration guide for v2.2.0
+### Предварительные требования
+- Python 3.11 или выше
+- Операционная система Windows
+- Токен Telegram-бота (получите от [@BotFather](https://t.me/BotFather))
 
-## ⚙️ Configuration
+### Автоматическая установка (Windows, рекомендуется)
 
-ControlBot v2.2.1+ uses **Pydantic Settings** for advanced configuration management:
-
-### Key Features
-- **Environment Variables**: All settings via `.env` file or environment
-- **Validation**: Automatic validation of all configuration parameters
-- **Type Safety**: Full type hints and validation with Pydantic v2
-- **Flexible Modes**: GUI/Headless mode switching
-- **Security**: Built-in user authentication and access control
-
-### Quick Configuration
-```bash
-# Copy example configuration
-cp .env.example .env
-
-# Edit with your settings
-# Required: TELEGRAM_BOT_TOKEN, ALLOWED_USER_IDS
-# Optional: GUI_MODE, HEADLESS_MODE, LOG_LEVEL, etc.
-```
-
-See [Configuration Guide](docs/CONFIG.md) for complete setup instructions.
-
-## 🔧 Features
-
-### 🖥️ System Management
-- **Process Control**: Launch, stop, and monitor processes
-- **System Operations**: Shutdown, restart, sleep, hibernate
-- **Process Monitoring**: View active processes and system resources
-- **Path Management**: Quick access to frequently used applications
-
-### 📁 File Operations
-- **File Transfer**: Upload and download files/folders
-- **File Search**: Advanced file search with filters
-- **File Management**: Cut, copy, and organize files
-- **Archive Support**: Automatic ZIP creation for folders
-
-### 🖱️ Remote Control
-- **Mouse Control**: Move, click, scroll, and save positions
-- **Keyboard Input**: Send keys and type text
-- **Screen Capture**: Screenshots with coordinate grid
-- **Image Recognition**: Find elements on screen by image
-- **RDP Streaming**: Real-time screen streaming (1-10 FPS)
-
-### 💻 Command Line Interface
-- **Interactive CMD**: Full command line session with auto-updates
-- **Command Execution**: Run any command with real-time output
-- **Session Management**: Start, stop, and manage command sessions
-- **Output Export**: Save complete command output as files
-
-### 📊 Monitoring & Security
-- **File Monitoring**: Real-time file system change detection
-- **User Authentication**: Whitelist-based access control
-- **Private Chat Only**: Secure communication channel
-- **Activity Logging**: Comprehensive operation tracking
-
-### 🎯 User Experience
-- **Auto-command Registration**: All commands appear in Telegram menu
-- **Context-aware Help**: Detailed help for each command
-- **Inline Keyboards**: Quick access buttons for common operations
-- **Real-time Updates**: Live status updates and notifications
-
-## 🚀 Quick Start
-
-### Prerequisites
-- Python 3.11 or higher
-- Windows operating system
-- Telegram Bot Token (get one from [@BotFather](https://t.me/BotFather))
-
-### Installation
-
-1. **Clone the repository**
+1. **Клонируйте репозиторий**
    ```bash
    git clone https://github.com/Eklipti/TelegramControlBot.git
    cd TelegramControlBot
    ```
 
-2. **Create virtual environment**
+2. **Запустите setup.bat**
+   ```bash
+   setup.bat
+   ```
+   
+   Скрипт автоматически:
+   - Проверит наличие Python
+   - Создаст виртуальное окружение `.venv`
+   - Установит все зависимости
+   - Создаст файл `.env` из `.env.example`
+
+3. **Настройте бота**
+   - Откройте `.env` в текстовом редакторе
+   - Укажите:
+     - `TELEGRAM_BOT_TOKEN` - токен вашего Telegram-бота (от [@BotFather](https://t.me/BotFather))
+     - `ALLOWED_USER_IDS` - список разрешённых ID пользователей через запятую (от [@userinfobot](https://t.me/userinfobot))
+
+4. **Запустите бота**
+   ```bash
+   start.bat
+   ```
+
+5. **Добавьте в автозагрузку (опционально)**
+   ```bash
+   install_autostart.bat
+   ```
+   
+   Бот будет автоматически запускаться при входе в Windows.
+
+### Ручная установка (альтернативный способ)
+
+1. **Клонируйте репозиторий**
+   ```bash
+   git clone https://github.com/Eklipti/TelegramControlBot.git
+   cd TelegramControlBot
+   ```
+
+2. **Создайте виртуальное окружение**
    ```bash
    python -m venv .venv
    ```
 
-3. **Activate virtual environment**
+3. **Активируйте виртуальное окружение**
    ```bash
    # Windows
    .\.venv\Scripts\activate
@@ -159,134 +200,144 @@ See [Configuration Guide](docs/CONFIG.md) for complete setup instructions.
    source .venv/bin/activate
    ```
 
-4. **Install dependencies**
+4. **Установите зависимости**
    ```bash
    pip install -r requirements.txt
    ```
 
-5. **Configure the bot**
-   - Create `.env` file based on `.env.example`
-   - Add your Telegram Bot Token
-   - Configure allowed user IDs
+5. **Настройте бота**
+   - Скопируйте `.env.example` в `.env`
+   - Откройте `.env` и укажите:
+     - `TELEGRAM_BOT_TOKEN` - токен вашего Telegram-бота (получите от [@BotFather](https://t.me/BotFather))
+     - `ALLOWED_USER_IDS` - список разрешённых ID пользователей через запятую (получите свой ID от [@userinfobot](https://t.me/userinfobot))
 
-6. **Run the bot**
+6. **Запустите бота**
    ```bash
    python main.py
    ```
-   
-   Or use the provided batch file:
-   ```bash
-   scripts/windows/ControlBot.bat
-   ```
 
-## 🖥️ CLI Launch
+## 🖥️ CLI запуск
 
-ControlBot supports multiple ways to launch the application:
+ControlBot поддерживает несколько способов запуска приложения:
 
-### Module Launch
+### Прямой запуск скрипта (рекомендуется)
 ```bash
-# Run as Python module
-python -m app
-```
-
-### Console Script (after installation)
-```bash
-# Install the package
-pip install -e .
-
-# Run using console script
-controlbot
-```
-
-### Direct Script Launch
-```bash
-# Run main script directly
+# Прямой запуск основного скрипта
 python main.py
 ```
 
-### Windows Batch File
+### Запуск как модуль
 ```bash
-# Use provided Windows batch file
-scripts/windows/ControlBot.bat
+# Запуск как Python модуль
+python -m app
 ```
 
-All launch methods support the same configuration options and environment variables.
+Все способы запуска поддерживают одинаковые опции конфигурации и переменные окружения.
 
-## 📄 License
+## 📚 Документация
 
-This project is licensed under the **GNU Affero General Public License v3.0 or later (AGPL-3.0-or-later)**.
+Документация находится в директории `docs/RU/`:
 
-Authors: Eklipti, Nlan_Cat
+- **[Руководство по установке](docs/RU/INSTALLATION.md)** - подробная инструкция по установке и настройке
+- **[Справочник команд](docs/RU/COMMANDS.md)** - полный список всех команд с примерами
+- **[История изменений](docs/RU/CHANGELOG.md)** - история версий и изменений
+- **[Конфигурация](docs/RU/CONFIG.md)** - настройка приложения
+- **[Планы на будущее](docs/RU/FUTURE.md)** - предстоящие функции и улучшения
+- **[Уровни логирования](docs/RU/LOGGING.md)** - описание системы логирования
+- **[Политика безопасности](docs/SECURITY.md)** - руководство по безопасности и сообщения об уязвимостях
 
-See [LICENSE](LICENSE) for the complete license text.
+## 🔧 Возможности
 
-## 🧪 Testing
+### 🖥️ Управление системой
+- **Управление процессами**: Запуск, остановка и мониторинг процессов
+- **Системные операции**: Выключение, перезагрузка, сон, гибернация
+- **Мониторинг процессов**: Просмотр активных процессов и системных ресурсов
+- **Управление путями**: Быстрый доступ к часто используемым приложениям
 
-The project includes comprehensive testing with **67 tests** across multiple categories:
+### 📁 Работа с файлами
+- **Передача файлов**: Загрузка и скачивание файлов/папок
+- **Поиск файлов**: Расширенный поиск файлов с фильтрами
+- **Управление файлами**: Вырезание, копирование и организация файлов
+- **Поддержка архивов**: Автоматическое создание ZIP для папок
 
-### Test Statistics (v2.2.1)
-- **Total Tests**: 67 tests
-- **Smoke Tests**: 16 tests (basic functionality and import validation)
-- **Unit Tests**: 35 tests (component-level testing)
-- **Headless Tests**: 51 tests (CI/GitHub Actions compatible)
-- **GUI Tests**: 1 test (requires GUI modules)
-- **Integration Tests**: 8 tests (end-to-end functionality)
-- **Configuration Tests**: 7 tests (Pydantic Settings validation)
+### 🖱️ Удалённое управление
+- **Управление мышью**: Перемещение, клики, прокрутка и сохранение позиций
+- **Ввод с клавиатуры**: Отправка клавиш и ввод текста
+- **Захват экрана**: Скриншоты с координатной сеткой
+- **Распознавание изображений**: Поиск элементов на экране по изображению
+- **RDP-трансляция**: Потоковая передача экрана в реальном времени (1-10 FPS)
 
-### Test Types
-- **Smoke Tests**: Basic functionality and import validation
-- **Unit Tests**: Individual component testing with mocks
-- **Headless Tests**: Tests that work in CI/GitHub Actions environment
-- **GUI Tests**: Tests requiring GUI modules (pyautogui, cv2, PIL)
-- **Integration Tests**: End-to-end functionality tests
-- **Configuration Tests**: Pydantic Settings validation and parsing
+### 💻 Интерфейс командной строки
+- **Интерактивная CMD**: Полная сессия командной строки с автообновлениями
+- **Выполнение команд**: Запуск любых команд с выводом в реальном времени
+- **Управление сессиями**: Запуск, остановка и управление сессиями команд
+- **Экспорт вывода**: Сохранение полного вывода команд в файлы
 
-### Running Tests
+### 📊 Мониторинг и безопасность
+- **Централизованное логирование**: Система логирования с экспортом в различные форматы
+- **Метрики и статистика**: Детальная статистика использования команд и производительности
+- **Мониторинг файлов**: Обнаружение изменений файловой системы в реальном времени
+- **Аутентификация пользователей**: Контроль доступа на основе белого списка
+- **Только приватные чаты**: Безопасный канал связи
+- **Система подтверждений**: Подтверждение опасных действий с таймаутами
+- **Аудит-трейлы**: Полное отслеживание всех операций пользователей
 
-**All tests (local development):**
-```bash
-python run_all_tests.py
-# or
-python -m pytest tests/ -v
-```
+### 🎯 Пользовательский интерфейс
+- **Система inline-меню**: Интерактивная навигация по командам через визуальные кнопки
+- **Многостраничная навигация**: Удобное переключение между тремя страницами команд
+- **Категоризация команд**: Логическая группировка по функциональным категориям
+- **Быстрое выполнение**: Запуск команд одним нажатием на inline-кнопку
+- **Копирование команд**: Команды отображаются в `<code>` тегах для быстрого копирования
+- **Справка по категориям**: Полная документация по всем командам категории
+- **Автоматическая регистрация команд**: Все команды автоматически появляются в меню Telegram
+- **Уведомления о запуске**: Пользователи получают уведомление "🟢 Бот запущен"
+- **Уведомления об остановке**: Пользователи получают уведомление "⛔ Бот остановлен"
+- **Контекстная справка**: `/help <команда>` для подробной информации
+- **Обновления в реальном времени**: Живые уведомления о статусе
+- **Обратная совместимость**: Поддержка прямого ввода команд наряду с inline-меню
 
-**Headless tests only (CI/GitHub Actions):**
-```bash
-python run_headless_tests.py
-# or
-python -m pytest tests/ -m headless -v
-```
+## 📄 Лицензия
 
-**Specific test categories:**
-```bash
-# GUI tests only
-python -m pytest tests/ -m gui -v
+Этот проект распространяется под лицензией **GNU Affero General Public License v3.0 or later (AGPL-3.0-or-later)**.
 
-# Smoke tests only
-python -m pytest tests/ -m smoke -v
+Авторы: Eklipti, Nlan_Cat
 
-# Configuration tests only
-python -m pytest tests/test_config.py -v
-```
+См. [LICENSE](../LICENSE) для полного текста лицензии.
 
-### CI/CD
-- **GitHub Actions**: Automated testing on Python 3.11 and 3.12
-- **Code Quality**: Ruff linting and MyPy type checking
-- **Headless Support**: Automatic headless mode detection
+## 🧪 Тестирование
 
-## 🤝 Contributing
+### Планы по тестированию
 
-Contributions are welcome! Please read the license terms and ensure compliance with AGPL-3.0-or-later requirements.
+Проект планирует использовать pytest маркеры для разделения тестов по типам:
 
-Before submitting a pull request:
-1. Run the test suite: `python run_tests.py`
-2. Ensure all tests pass
-3. Follow the existing code style
+#### Планируемые маркеры
+- `@pytest.mark.smoke` - базовые smoke-тесты
+- `@pytest.mark.gui` - тесты, требующие GUI модули (pyautogui, cv2, PIL)
+- `@pytest.mark.integration` - интеграционные тесты
 
-## 📞 Support
+#### Планируемая структура тестов
+- `tests/test_config.py` - тесты конфигурации
+- `tests/test_smoke.py` - основные smoke-тесты
+- `tests/test_handlers.py` - тесты обработчиков команд
+- `tests/test_core.py` - тесты основной логики
 
-For questions and support, please open an issue on the [GitHub repository](https://github.com/Eklipti/TelegramControlBot).
+#### Планы по CI/CD
+- **GitHub Actions**: Планируется автоматизированное тестирование на Python 3.11 и 3.12
+- **Качество кода**: Проверка линтером Ruff и проверка типов MyPy
+
+## 🤝 Вклад в проект
+
+Вклад в проект приветствуется! Пожалуйста, ознакомьтесь с условиями лицензии и убедитесь в соответствии требованиям AGPL-3.0-or-later.
+
+Перед отправкой pull request:
+1. Убедитесь, что код соответствует стилю проекта
+2. Проверьте, что все импорты работают корректно
+3. Следуйте существующему стилю кода
+
+## 📞 Поддержка
+
+По вопросам и поддержке, пожалуйста, создайте issue в [GitHub репозитории](https://github.com/Eklipti/TelegramControlBot).
 
 ---
 
-**Remember: Use responsibly and only on devices you own or have permission to control!**
+**Помните: Используйте ответственно и только на устройствах, которыми вы владеете или имеете разрешение на управление!**

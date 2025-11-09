@@ -5,11 +5,12 @@ import io
 import os
 import tempfile
 
+import cv2
+import pyautogui
 from aiogram import F
 from aiogram.types import BufferedInputFile, Message
 
 from ..core.logging import debug, error, info, warning
-from ..gui_utils import lazy_import_cv2, lazy_import_pyautogui, lazy_import_pil
 from ..router import router
 from ..state import download_requests, mouse_positions, screen_find_requests, upload_requests
 
@@ -81,9 +82,6 @@ async def handle_file(message: Message) -> None:
         template_path: str | None = None
         screen_path: str | None = None
         try:
-            # Лениво импортируем GUI модули
-            cv2 = lazy_import_cv2()
-            pyautogui = lazy_import_pyautogui()
             debug("GUI модули успешно импортированы", "attachments")
 
             file = await message.bot.get_file(message.photo[-1].file_id)  # type: ignore[index]
@@ -116,10 +114,6 @@ async def handle_file(message: Message) -> None:
             else:
                 warning(f"Объект не найден на экране (максимальная точность: {max_val:.2f})", "attachments")
                 await message.answer("❌ Объект не найден на экране")
-        except RuntimeError as e:
-            # Специальная обработка для headless-окружения
-            warning(f"Ошибка в headless-окружении: {e}", "attachments")
-            await message.answer(f"⚠️ {e}")
         except Exception as e:
             error(f"Ошибка поиска по фото для пользователя {chat_id}: {e}", "attachments")
             await message.answer(f"⚠️ Ошибка поиска: {e}")

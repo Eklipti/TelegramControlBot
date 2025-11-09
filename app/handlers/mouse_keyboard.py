@@ -1,11 +1,12 @@
 # SPDX-FileCopyrightText: 2025 ControlBot contributors
 # SPDX-License-Identifier: AGPL-3.0-or-later
 
+import cv2
 import numpy as np
+import pyautogui
 from aiogram.filters import Command
 from aiogram.types import BufferedInputFile, Message
 
-from ..gui_utils import lazy_import_cv2, lazy_import_pyautogui
 from ..router import router
 from ..state import mouse_positions
 
@@ -13,12 +14,9 @@ from ..state import mouse_positions
 @router.message(Command("mouse_move_rel"))
 async def handle_mouse_move_rel(message: Message) -> None:
     try:
-        pyautogui = lazy_import_pyautogui()
         _, dx, dy = message.text.split()
         pyautogui.moveRel(int(dx), int(dy))
         await message.answer(f"🖱 Мышь перемещена на ({dx}, {dy})")
-    except RuntimeError as e:
-        await message.answer(f"⚠️ {e}")
     except Exception as e:
         await message.answer(f"⚠️ Ошибка: {e}\nИспользуйте: /mouse_move_rel dx dy")
 
@@ -26,7 +24,6 @@ async def handle_mouse_move_rel(message: Message) -> None:
 @router.message(Command("screen_mark"))
 async def handle_screen_mark(message: Message) -> None:
     try:
-        cv2, pyautogui = lazy_import_cv2(), lazy_import_pyautogui()
         screenshot = pyautogui.screenshot()
         img = np.array(screenshot)
         img = cv2.cvtColor(img, cv2.COLOR_RGB2BGR)
@@ -45,8 +42,6 @@ async def handle_screen_mark(message: Message) -> None:
             BufferedInputFile(buffer.tobytes(), filename="screen_marked.png"),
             caption=f"📐 Экран с разметкой\nТекущая позиция: ({mx}, {my})",
         )
-    except RuntimeError as e:
-        await message.answer(f"⚠️ {e}")
     except Exception as e:
         await message.answer(f"⚠️ Ошибка: {e}")
 
@@ -54,13 +49,10 @@ async def handle_screen_mark(message: Message) -> None:
 @router.message(Command("mouse_save"))
 async def handle_mouse_save(message: Message) -> None:
     try:
-        pyautogui = lazy_import_pyautogui()
         name = message.text.split()[1]
         x, y = pyautogui.position()
         mouse_positions[name] = (x, y)
         await message.answer(f"📍 Позиция сохранена как '{name}' ({x}, {y})")
-    except RuntimeError as e:
-        await message.answer(f"⚠️ {e}")
     except Exception as e:
         await message.answer(f"⚠️ Ошибка: {e}\nИспользуйте: /mouse_save имя_позиции")
 
@@ -68,13 +60,10 @@ async def handle_mouse_save(message: Message) -> None:
 @router.message(Command("mouse_goto"))
 async def handle_mouse_goto(message: Message) -> None:
     try:
-        pyautogui = lazy_import_pyautogui()
         name = message.text.split()[1]
         x, y = mouse_positions[name]
         pyautogui.moveTo(x, y)
         await message.answer(f"🖱 Мышь перемещена в позицию '{name}' ({x}, {y})")
-    except RuntimeError as e:
-        await message.answer(f"⚠️ {e}")
     except Exception as e:
         available = "\n".join([f"- {k}" for k in mouse_positions.keys()])
         await message.answer(f"⚠️ Ошибка: {e}\nДоступные позиции:\n{available}")
@@ -83,13 +72,10 @@ async def handle_mouse_goto(message: Message) -> None:
 @router.message(Command("mouse_speed"))
 async def handle_mouse_speed(message: Message) -> None:
     try:
-        pyautogui = lazy_import_pyautogui()
         speed = float(message.text.split()[1])
         pyautogui.MINIMUM_DURATION = speed
         pyautogui.MINIMUM_SLEEP = speed
         await message.answer(f"⚡ Скорость мыши установлена: {speed} сек")
-    except RuntimeError as e:
-        await message.answer(f"⚠️ {e}")
     except Exception as e:
         await message.answer(f"⚠️ Ошибка: {e}\nИспользуйте: /mouse_speed 0.1 (быстро) или 1.0 (медленно)")
 
@@ -97,12 +83,9 @@ async def handle_mouse_speed(message: Message) -> None:
 @router.message(Command("mouse_move"))
 async def handle_mouse_move(message: Message) -> None:
     try:
-        pyautogui = lazy_import_pyautogui()
         _, x, y = message.text.split()
         pyautogui.moveTo(int(x), int(y))
         await message.answer(f"🖱 Мышь перемещена в ({x}, {y})")
-    except RuntimeError as e:
-        await message.answer(f"⚠️ {e}")
     except Exception as e:
         await message.answer(f"⚠️ Ошибка: {e}\nИспользуйте: /mouse_move x y")
 
@@ -110,14 +93,11 @@ async def handle_mouse_move(message: Message) -> None:
 @router.message(Command("mouse_click"))
 async def handle_mouse_click(message: Message) -> None:
     try:
-        pyautogui = lazy_import_pyautogui()
         button = "left"
         if len(message.text.split()) > 1:
             button = message.text.split()[1]
         pyautogui.click(button=button)
         await message.answer(f"🖱 Клик {button} кнопкой")
-    except RuntimeError as e:
-        await message.answer(f"⚠️ {e}")
     except Exception as e:
         await message.answer(f"⚠️ Ошибка: {e}\nДоступные кнопки: left, right, middle")
 
@@ -125,12 +105,9 @@ async def handle_mouse_click(message: Message) -> None:
 @router.message(Command("mouse_scroll"))
 async def handle_mouse_scroll(message: Message) -> None:
     try:
-        pyautogui = lazy_import_pyautogui()
         _, steps = message.text.split()
         pyautogui.scroll(int(steps))
         await message.answer(f"🖱 Скролл на {steps} шагов")
-    except RuntimeError as e:
-        await message.answer(f"⚠️ {e}")
     except Exception as e:
         await message.answer(f"⚠️ Ошибка: {e}\nИспользуйте: /mouse_scroll steps")
 
@@ -138,7 +115,6 @@ async def handle_mouse_scroll(message: Message) -> None:
 @router.message(Command("key"))
 async def handle_key_press(message: Message) -> None:
     try:
-        pyautogui = lazy_import_pyautogui()
         args = message.text.split()[1:]
         if not args:
             await message.answer("⚠️ Укажите клавиши для нажатия")
@@ -153,8 +129,6 @@ async def handle_key_press(message: Message) -> None:
         else:
             pyautogui.hotkey(*keys)
         await message.answer(f"⌨ Нажаты клавиши: {'+'.join(keys)}")
-    except RuntimeError as e:
-        await message.answer(f"⚠️ {e}")
     except Exception as e:
         await message.answer(f"⚠️ Ошибка: {e}\nПример: /key enter или /key ctrl+alt+delete")
 
@@ -162,11 +136,8 @@ async def handle_key_press(message: Message) -> None:
 @router.message(Command("type"))
 async def handle_type_text(message: Message) -> None:
     try:
-        pyautogui = lazy_import_pyautogui()
         text = message.text.split(" ", 1)[1]
         pyautogui.typewrite(text)
         await message.answer(f"⌨ Введен текст: {text}")
-    except RuntimeError as e:
-        await message.answer(f"⚠️ {e}")
     except Exception as e:
         await message.answer(f"⚠️ Ошибка: {e}\nИспользуйте: /type ваш_текст")

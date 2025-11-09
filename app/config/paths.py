@@ -41,19 +41,10 @@ class PathsConfig(BaseModel):
 
     def load_default_paths(self) -> None:
         """Загружает системные пути из DEFAULT_PATHS.json и системного PATH"""
-        # Сначала загружаем из файла, если существует
-        path = Path(self.default_paths_file) if isinstance(self.default_paths_file, str) else self.default_paths_file
-        if path.exists():
-            try:
-                with open(path, encoding="utf-8") as f:
-                    self.default_paths = json.load(f)
-            except Exception as e:
-                print(f"Ошибка загрузки {path}: {e}")
-                self.default_paths = {}
-        else:
-            self.default_paths = {}
-
-        # Затем загружаем системные пути из PATH
+        # Всегда генерируем пути из PATH заново для актуальности
+        self.default_paths = {}
+        
+        # Загружаем системные пути из PATH
         self._load_system_paths()
 
     def _load_system_paths(self) -> None:
@@ -62,6 +53,9 @@ class PathsConfig(BaseModel):
         if not system_path:
             return
 
+        # Разрешенные расширения исполняемых файлов для Windows
+        executable_extensions = {".exe", ".bat", ".cmd", ".com", ".vbs", ".ps1", ".msc"}
+        
         # Парсим PATH и находим исполняемые файлы
         path_dirs = [p.strip() for p in system_path.split(os.pathsep) if p.strip()]
         
@@ -72,11 +66,24 @@ class PathsConfig(BaseModel):
             try:
                 for item in os.listdir(path_dir):
                     item_path = os.path.join(path_dir, item)
-                    if os.path.isfile(item_path) and os.access(item_path, os.X_OK):
-                        # Получаем имя файла без расширения
-                        name = os.path.splitext(item)[0]
-                        if name and name not in self.default_paths:
-                            self.default_paths[name] = os.path.abspath(item_path)
+                    if not os.path.isfile(item_path):
+                        continue
+                    
+                    # Получаем расширение файла
+                    _, ext = os.path.splitext(item)
+                    
+                    # Фильтруем только исполняемые файлы
+                    if os.name == "nt":  # Windows
+                        if ext.lower() not in executable_extensions:
+                            continue
+                    else:  # Linux/Mac
+                        if not os.access(item_path, os.X_OK):
+                            continue
+                    
+                    # Получаем имя файла без расширения
+                    name = os.path.splitext(item)[0]
+                    if name and name not in self.default_paths:
+                        self.default_paths[name] = os.path.abspath(item_path)
             except (OSError, PermissionError):
                 continue
 
@@ -224,32 +231,3 @@ def init_paths_config() -> PathsConfig:
     global _paths_config
     _paths_config = PathsConfig()
     return _paths_config
-
-
-def load_default_paths() -> dict[str, Any]:
-    """Загружает системные пути (обратная совместимость)"""
-    return get_paths_config().default_paths
-
-
-def load_paths(user_id: int) -> dict[str, Any]:
-    """Загружает пользовательские пути (обратная совместимость)"""
-    return get_paths_config().load_user_paths(user_id)
-
-
-def save_paths(user_id: int, paths: dict[str, Any]) -> None:
-    """Сохраняет пользовательские пути (обратная совместимость)"""
-    config = get_paths_config()
-    config.user_paths[user_id] = paths
-    config.save_user_paths(user_id)
-
-
-def save_default_paths(paths: dict[str, Any]) -> None:
-    """Сохраняет системные пути (обратная совместимость)"""
-    config = get_paths_config()
-    config.default_paths = paths
-    config.save_default_paths()
-
-
-def get_all_paths(user_id: int) -> dict[str, Any]:
-    """Получает все пути для пользователя (обратная совместимость)"""
-    return get_paths_config().get_all_paths(user_id)

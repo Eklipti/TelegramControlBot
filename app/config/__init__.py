@@ -16,9 +16,6 @@ class Settings(BaseSettings):
     telegram_bot_token: str = Field(..., description="Токен Telegram бота")
     allowed_user_ids: str = Field(default="", description="Список разрешенных пользователей (через запятую)")
 
-    # Режим отображения
-    gui_enabled: bool = Field(default=True, description="Включить GUI режим (True = GUI, False = Headless)")
-
     # Уровень логирования
     log_level: str = Field(default="INFO", description="Уровень логирования")
 
@@ -92,16 +89,6 @@ class Settings(BaseSettings):
             return "cp866"
         return os.device_encoding(1) or "utf-8"
 
-    @property
-    def gui_mode(self) -> bool:
-        """Обратная совместимость: возвращает gui_enabled."""
-        return self.gui_enabled
-
-    @property
-    def headless_mode(self) -> bool:
-        """Обратная совместимость: возвращает not gui_enabled."""
-        return not self.gui_enabled
-
     def get_project_root(self) -> Path:
         """Возвращает корневую директорию проекта."""
         # Ищем корень проекта по наличию pyproject.toml
@@ -157,52 +144,5 @@ def reload_settings() -> Settings:
     return _settings
 
 
-# Экспорт для обратной совместимости
-__all__ = ["Settings", "get_settings", "reload_settings", "get_encoding", "is_user_allowed", "load_env"]
-
-
-# Функции для обратной совместимости
-def get_encoding() -> str:
-    """DEPRECATED: Используйте settings.get_encoding()"""
-    import warnings
-
-    warnings.warn(
-        "Функция get_encoding() устарела. Используйте settings.get_encoding()", DeprecationWarning, stacklevel=2
-    )
-    if os.name == "nt":
-        return "cp866"
-    return os.device_encoding(1) or "utf-8"
-
-
-def is_user_allowed(user_id: int, allowed_users: list[int]) -> bool:
-    """DEPRECATED: Используйте settings.is_user_allowed()"""
-    import warnings
-
-    warnings.warn(
-        "Функция is_user_allowed() устарела. Используйте settings.is_user_allowed()", DeprecationWarning, stacklevel=2
-    )
-    return user_id in allowed_users
-
-
-def load_env(path: str = ".env") -> None:
-    """DEPRECATED: Используйте Settings.load_from_env()"""
-    import warnings
-
-    warnings.warn("Функция load_env() устарела. Используйте Settings.load_from_env()", DeprecationWarning, stacklevel=2)
-    if not os.path.exists(path):
-        return
-    try:
-        with open(path, encoding="utf-8") as f:
-            for raw in f.readlines():
-                line = raw.strip()
-                if not line or line.startswith("#"):
-                    continue
-                if "=" not in line:
-                    continue
-                key, value = line.split("=", 1)
-                key = key.strip()
-                value = value.strip().strip('"').strip("'")
-                if key and key not in os.environ:
-                    os.environ[key] = value
-    except Exception:
-        pass
+# Экспорт
+__all__ = ["Settings", "get_settings", "reload_settings"]
