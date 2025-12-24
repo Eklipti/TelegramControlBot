@@ -1,5 +1,5 @@
 """
-Система логирования для ControlBot v2.
+Система логирования для TelegramControlBot v2.
 
 Уровни логирования:
 - CRITICAL: ошибки, которые приводят к аварийному завершению работы программы
@@ -34,11 +34,9 @@ class LoggingSystem:
         self.logs_dir = Path(logs_dir)
         self.logs_dir.mkdir(exist_ok=True)
 
-        # Настройка уровней логирования
         logging.addLevelName(5, "TRACE")
         logging.addLevelName(50, "CRITICAL")
 
-        # Регистрация кастомного логгера
         logging.setLoggerClass(TraceLogger)
 
         self._setup_loggers()
@@ -46,58 +44,12 @@ class LoggingSystem:
     def _setup_loggers(self):
         """Настройка всех логгеров и обработчиков."""
 
-        # Создаем централизованный handler
         self.centralized_handler = CentralizedLoggingHandler()
 
-        # Основной логгер для all.log
         self.main_logger = self._create_logger(
             name="main",
             level=logging.DEBUG,
             filename="all.log",
-            format_string="%(asctime)s | %(levelname)-8s | %(name)s | %(message)s",
-        )
-
-        # Логгеры для отдельных уровней
-        self.critical_logger = self._create_logger(
-            name="critical",
-            level=logging.CRITICAL,
-            filename="critical.log",
-            format_string="%(asctime)s | %(levelname)-8s | %(name)s | %(message)s",
-        )
-
-        self.error_logger = self._create_logger(
-            name="error",
-            level=logging.ERROR,
-            filename="error.log",
-            format_string="%(asctime)s | %(levelname)-8s | %(name)s | %(message)s",
-        )
-
-        self.warning_logger = self._create_logger(
-            name="warning",
-            level=logging.WARNING,
-            filename="warn.log",
-            format_string="%(asctime)s | %(levelname)-8s | %(name)s | %(message)s",
-        )
-
-        self.info_logger = self._create_logger(
-            name="info",
-            level=logging.INFO,
-            filename="info.log",
-            format_string="%(asctime)s | %(levelname)-8s | %(name)s | %(message)s",
-        )
-
-        self.debug_logger = self._create_logger(
-            name="debug",
-            level=logging.DEBUG,
-            filename="debug.log",
-            format_string="%(asctime)s | %(levelname)-8s | %(name)s | %(message)s",
-        )
-
-        # Специальный логгер для TRACE
-        self.trace_logger = self._create_logger(
-            name="trace",
-            level=5,  # TRACE level
-            filename="trace.log",
             format_string="%(asctime)s | %(levelname)-8s | %(name)s | %(message)s",
         )
 
@@ -106,25 +58,19 @@ class LoggingSystem:
         logger = logging.getLogger(name)
         logger.setLevel(level)
 
-        # Очистка существующих обработчиков
         logger.handlers.clear()
 
-        # Создание файлового обработчика
         file_path = self.logs_dir / filename
         file_handler = logging.FileHandler(file_path, encoding="utf-8")
         file_handler.setLevel(level)
 
-        # Создание форматтера
         formatter = logging.Formatter(format_string)
         file_handler.setFormatter(formatter)
 
-        # Добавление файлового обработчика к логгеру
         logger.addHandler(file_handler)
         
-        # Добавление централизованного обработчика
         logger.addHandler(self.centralized_handler)
 
-        # Предотвращение дублирования логов
         logger.propagate = False
 
         return logger
@@ -164,7 +110,7 @@ class LoggingSystem:
         if hasattr(logger, "trace"):
             logger.trace(message, **kwargs)
         else:
-            logger.log(5, message, **kwargs)  # 5 = TRACE level
+            logger.log(5, message, **kwargs)
 
     def trace_function_entry(
         self, function_name: str, args: tuple = None, kwargs: dict = None, logger_name: str = "main"
@@ -199,7 +145,7 @@ def init_logging(logs_dir: str = "./logs", log_level: str = "INFO") -> LoggingSy
 
     Args:
         logs_dir: Директория для файлов логов
-        log_level: Уровень логирования (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+        log_level: Уровень логирования (TRACE, DEBUG, INFO, WARNING, ERROR, CRITICAL)
 
     Returns:
         Экземпляр системы логирования
@@ -209,7 +155,6 @@ def init_logging(logs_dir: str = "./logs", log_level: str = "INFO") -> LoggingSy
     if logging_system is not None:
         return logging_system
 
-    # Создаем директорию логов
     logs_path = Path(logs_dir)
     logs_path.mkdir(parents=True, exist_ok=True)
 
@@ -218,17 +163,18 @@ def init_logging(logs_dir: str = "./logs", log_level: str = "INFO") -> LoggingSy
     if all_log_path.exists():
         all_log_path.unlink()
 
-    # Инициализируем систему логирования
     logging_system = LoggingSystem(str(logs_path))
 
-    # Устанавливаем уровень логирования для корневого логгера
     numeric_level = getattr(logging, log_level.upper(), logging.INFO)
+
     logging.getLogger().setLevel(numeric_level)
 
-    # Логируем успешную инициализацию
-    logging_system.info(
-        f"Система логирования инициализирована. Уровень: {log_level}, Директория: {logs_path.absolute()}"
-    )
+    main_logger = logging_system.get_logger("main")
+    main_logger.setLevel(numeric_level)
+
+    logging_system.centralized_handler.setLevel(numeric_level)
+
+    logging_system.info(f"Система логирования инициализирована. Уровень: {log_level}, Директория: {logs_path.absolute()}")
 
     return logging_system
 
@@ -287,8 +233,6 @@ def trace_step(step: str, logger_name: str = "main"):
     """Логирование шага выполнения."""
     get_logging_system().trace_step(step, logger_name)
 
-
-# --- Новый декоратор для автоматического TRACE-входа/выхода ---
 def log_call(logger_name: str = "main"):
     """
     Декоратор: логирует вход/выход функции на уровне TRACE.

@@ -1,5 +1,19 @@
-# SPDX-FileCopyrightText: 2025 ControlBot contributors
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# Telegram Control Bot
+# Copyright (C) 2025 Eklipti
+#
+# Этот проект — свободное программное обеспечение: вы можете
+# распространять и/или изменять его на условиях
+# Стандартной общественной лицензии GNU (GNU GPL)
+# третьей версии, опубликованной Фондом свободного ПО.
+#
+# Программа распространяется в надежде, что она будет полезной,
+# но БЕЗ КАКИХ-ЛИБО ГАРАНТИЙ; даже без подразумеваемой гарантии
+# ТОВАРНОГО СОСТОЯНИЯ или ПРИГОДНОСТИ ДЛЯ КОНКРЕТНОЙ ЦЕЛИ.
+# Подробности см. в Стандартной общественной лицензии GNU.
+#
+# Вы должны были получить копию Стандартной общественной
+# лицензии GNU вместе с этой программой. Если это не так,
+# см. <https://www.gnu.org/licenses/>.
 
 import asyncio
 import logging
@@ -12,6 +26,7 @@ from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMar
 from ..config import get_settings
 from ..core.logging import debug, error, info, log_call, warning
 from ..core.metrics_decorator import track_command_metrics
+from ..help_texts import get_command_help_text
 from ..router import router
 from ..services.process_stream import stream_process_to_message
 
@@ -112,7 +127,7 @@ async def handle_cmd(message: Message) -> None:
 
     if not command_text:
         warning(f"Пустая команда от пользователя {user_id} в чате {chat_id}", "cmd_handler")
-        await message.answer("ℹ️ Укажите команду: /cmd [команда]")
+        await message.answer(get_command_help_text("cmd"))
         return
 
     try:
@@ -125,52 +140,6 @@ async def handle_cmd(message: Message) -> None:
         error(f"Ошибка отправки команды '{command_text}' в чате {chat_id}: {e}", "cmd_handler")
         logging.exception("Ошибка отправки команды в cmd")
         await message.answer(f"⚠️ Ошибка отправки команды: {e}")
-
-
-@router.message(Command("cmd_wait"))
-@log_call("cmd_handler")
-async def handle_cmd_wait(message: Message) -> None:
-    """Настройка интервала автообновления cmd сессии"""
-    chat_id = message.chat.id
-    args = message.text.split(maxsplit=2)
-
-    if len(args) < 2:
-        await message.answer("ℹ️ Используйте: /cmd_wait [интервал_секунды] [команда]\nПример: /cmd_wait 1.0 dir")
-        return
-
-    if chat_id not in cmd_sessions or not cmd_sessions[chat_id]["active"]:
-        await message.answer("ℹ️ Нет активной cmd сессии. Используйте /cmd_session_start для запуска")
-        return
-
-    try:
-        interval_seconds = float(args[1])
-        if interval_seconds < 0.25:
-            await message.answer("⚠️ Минимальный интервал обновления: 0.25 секунды")
-            return
-        if interval_seconds > 60:
-            await message.answer("⚠️ Максимальный интервал обновления: 60 секунд")
-            return
-    except ValueError:
-        await message.answer("⚠️ Неверный формат времени. Используйте число (например: 1.0)")
-        return
-
-    # Устанавливаем новый интервал обновления
-    update_intervals[chat_id] = interval_seconds
-
-    # Если есть команда, выполняем её
-    if len(args) > 2:
-        command_text = args[2]
-        try:
-            proc: asyncio.subprocess.Process = cmd_sessions[chat_id]["process"]
-            proc.stdin.write((command_text + "\n").encode(get_settings().get_encoding()))  # type: ignore[attr-defined]
-            await proc.stdin.drain()  # type: ignore[attr-defined]
-            await message.answer(f"⌨ Команда отправлена: {command_text}")
-        except Exception as e:
-            logging.exception("Ошибка отправки команды в cmd_wait")
-            await message.answer(f"⚠️ Ошибка отправки команды: {e}")
-
-    await message.answer(f"⚙️ Интервал автообновления установлен: {interval_seconds} сек")
-
 
 @router.message(Command("cmd_session_stop"))
 @log_call("cmd_handler")

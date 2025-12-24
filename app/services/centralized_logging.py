@@ -1,5 +1,19 @@
-# SPDX-FileCopyrightText: 2025 ControlBot contributors
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# Telegram Control Bot
+# Copyright (C) 2025 Eklipti
+#
+# Этот проект — свободное программное обеспечение: вы можете
+# распространять и/или изменять его на условиях
+# Стандартной общественной лицензии GNU (GNU GPL)
+# третьей версии, опубликованной Фондом свободного ПО.
+#
+# Программа распространяется в надежде, что она будет полезной,
+# но БЕЗ КАКИХ-ЛИБО ГАРАНТИЙ; даже без подразумеваемой гарантии
+# ТОВАРНОГО СОСТОЯНИЯ или ПРИГОДНОСТИ ДЛЯ КОНКРЕТНОЙ ЦЕЛИ.
+# Подробности см. в Стандартной общественной лицензии GNU.
+#
+# Вы должны были получить копию Стандартной общественной
+# лицензии GNU вместе с этой программой. Если это не так,
+# см. <https://www.gnu.org/licenses/>.
 
 """
 Централизованная система логирования с экспортом в разные форматы.
@@ -246,7 +260,7 @@ class CentralizedLogger:
             # Выносим блокирующую операцию записи в отдельный поток
             def _write_text():
                 with open(export_path, 'w', encoding='utf-8') as f:
-                    f.write(f"ControlBot Logs Export\n")
+                    f.write(f"TelegramControlBot Logs Export\n")
                     f.write(f"Generated: {datetime.now().isoformat()}\n")
                     f.write(f"Total logs: {len(self.centralized_logs)}\n")
                     f.write("=" * 50 + "\n\n")

@@ -1,20 +1,37 @@
-# SPDX-FileCopyrightText: 2025 ControlBot contributors
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# Telegram Control Bot
+# Copyright (C) 2025 Eklipti
+#
+# Этот проект — свободное программное обеспечение: вы можете
+# распространять и/или изменять его на условиях
+# Стандартной общественной лицензии GNU (GNU GPL)
+# третьей версии, опубликованной Фондом свободного ПО.
+#
+# Программа распространяется в надежде, что она будет полезной,
+# но БЕЗ КАКИХ-ЛИБО ГАРАНТИЙ; даже без подразумеваемой гарантии
+# ТОВАРНОГО СОСТОЯНИЯ или ПРИГОДНОСТИ ДЛЯ КОНКРЕТНОЙ ЦЕЛИ.
+# Подробности см. в Стандартной общественной лицензии GNU.
+#
+# Вы должны были получить копию Стандартной общественной
+# лицензии GNU вместе с этой программой. Если это не так,
+# см. <https://www.gnu.org/licenses/>.
 
 def main() -> None:
-    # Используем Pydantic Settings как единый источник правды
     from app.config import get_settings
     settings = get_settings()
-    settings.ensure_directories()
+    project_root = settings.get_project_root()
+    
+    (project_root / "logs").mkdir(parents=True, exist_ok=True)
+    (project_root / "data").mkdir(parents=True, exist_ok=True)
+    (project_root / "exports").mkdir(parents=True, exist_ok=True)
+    (project_root / "jsons").mkdir(parents=True, exist_ok=True)
 
-    # Инициализируем логирование согласно Settings
     from app.core.logging import init_logging, info, critical
     init_logging(
-        logs_dir=str(settings.get_logs_directory()),
-        log_level=settings.log_level,  # теперь поддерживает TRACE (см. патч ниже)
+        logs_dir=str(project_root / "logs"),
+        log_level=settings.log_level,
     )
 
-    info("Инициализация ControlBot завершена", "main")
+    info("Инициализация TelegramControlBot завершена", "main")
 
     try:
         from app.app import main as run_aiogram
@@ -26,3 +43,4 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+

@@ -1,5 +1,19 @@
-# SPDX-FileCopyrightText: 2025 ControlBot contributors
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# Telegram Control Bot
+# Copyright (C) 2025 Eklipti
+#
+# Этот проект — свободное программное обеспечение: вы можете
+# распространять и/или изменять его на условиях
+# Стандартной общественной лицензии GNU (GNU GPL)
+# третьей версии, опубликованной Фондом свободного ПО.
+#
+# Программа распространяется в надежде, что она будет полезной,
+# но БЕЗ КАКИХ-ЛИБО ГАРАНТИЙ; даже без подразумеваемой гарантии
+# ТОВАРНОГО СОСТОЯНИЯ или ПРИГОДНОСТИ ДЛЯ КОНКРЕТНОЙ ЦЕЛИ.
+# Подробности см. в Стандартной общественной лицензии GNU.
+#
+# Вы должны были получить копию Стандартной общественной
+# лицензии GNU вместе с этой программой. Если это не так,
+# см. <https://www.gnu.org/licenses/>.
 
 import asyncio
 import os
@@ -11,6 +25,7 @@ from aiogram.types import BufferedInputFile, Message
 
 from ..config import get_settings
 from ..core.logging import debug, error, info, warning
+from ..help_texts import get_command_help_text
 from ..router import router
 
 
@@ -19,7 +34,7 @@ async def handle_find(message: Message) -> None:
     args = message.text.split(maxsplit=1)
     if len(args) < 2:
         warning("Команда /find вызвана без параметров", "command_search")
-        await message.answer("❌ Укажите параметры поиска после /find")
+        await message.answer(get_command_help_text("find"))
         return
 
     search_params = args[1]

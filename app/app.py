@@ -1,5 +1,19 @@
-# SPDX-FileCopyrightText: 2025 ControlBot contributors
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# Telegram Control Bot
+# Copyright (C) 2025 Eklipti
+#
+# Этот проект — свободное программное обеспечение: вы можете
+# распространять и/или изменять его на условиях
+# Стандартной общественной лицензии GNU (GNU GPL)
+# третьей версии, опубликованной Фондом свободного ПО.
+#
+# Программа распространяется в надежде, что она будет полезной,
+# но БЕЗ КАКИХ-ЛИБО ГАРАНТИЙ; даже без подразумеваемой гарантии
+# ТОВАРНОГО СОСТОЯНИЯ или ПРИГОДНОСТИ ДЛЯ КОНКРЕТНОЙ ЦЕЛИ.
+# Подробности см. в Стандартной общественной лицензии GNU.
+#
+# Вы должны были получить копию Стандартной общественной
+# лицензии GNU вместе с этой программой. Если это не так,
+# см. <https://www.gnu.org/licenses/>.
 
 import asyncio
 
@@ -25,7 +39,7 @@ async def _run() -> None:
     settings = get_settings()
 
     from app.core.logging import info
-    info("Запуск приложения ControlBot", "app")
+    info("Запуск приложения TelegramControlBot", "app")
 
     bot = Bot(token=settings.telegram_bot_token, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
     dp = Dispatcher(storage=MemoryStorage())
@@ -37,8 +51,9 @@ async def _run() -> None:
     init_security(bot)
     info("Система безопасности инициализирована", "app")
 
-    init_metrics(str(settings.get_data_directory()))
-    init_centralized_logging(str(settings.get_logs_directory()), str(settings.get_exports_directory()))
+    project_root = settings.get_project_root()
+    init_metrics(str(project_root / "data"))
+    init_centralized_logging(str(project_root / "logs"), str(project_root / "exports"))
     info("Система мониторинга и метрик инициализирована", "app")
     
     paths_config = init_paths_config()
@@ -74,7 +89,3 @@ def main() -> None:
         asyncio.run(_run())
     except KeyboardInterrupt:
         pass
-
-
-if __name__ == "__main__":
-    main()

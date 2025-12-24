@@ -1,27 +1,30 @@
 @echo off
-REM SPDX-FileCopyrightText: 2025 ControlBot contributors
+REM SPDX-FileCopyrightText: 2025 TelegramControlBot contributors
 REM SPDX-License-Identifier: AGPL-3.0-or-later
 
 chcp 65001 >nul
-title ControlBot
+title TelegramControlBot
 
-REM Получение пути к директории скрипта
 set "SCRIPT_DIR=%~dp0"
 cd /d "%SCRIPT_DIR%"
 
-REM Проверка наличия виртуального окружения
 if not exist ".venv" (
-    echo [ОШИБКА] Виртуальное окружение не найдено!
+    echo [INFO] Виртуальное окружение не найдено.
     echo.
-    echo Пожалуйста, сначала запустите setup.bat для настройки.
-    echo.
+    echo Запуск setup.bat для создания окружения...
+    call setup.bat
+    if not exist ".venv" (
+        echo [ERROR] Виртуальное окружение не было создано!
+        pause
+        exit /b 1
+    )
+    echo [OK] Виртуальное окружение создано.
     pause
     exit /b 1
 )
 
-REM Проверка наличия .env файла
 if not exist ".env" (
-    echo [ПРЕДУПРЕЖДЕНИЕ] Файл .env не найден!
+    echo [WARNING] Файл .env не найден!
     echo.
     echo Пожалуйста, создайте .env файл с настройками бота.
     echo Используйте .env.example как шаблон.
@@ -30,18 +33,15 @@ if not exist ".env" (
     exit /b 1
 )
 
-REM Активация виртуального окружения и запуск бота
 echo ============================================
-echo   Запуск ControlBot...
+echo   Запуск TelegramControlBot...
 echo ============================================
 echo.
 
 call .venv\Scripts\activate.bat
 
-REM Запуск бота
 python main.py
 
-REM Если бот завершился с ошибкой
 if errorlevel 1 (
     echo.
     echo ============================================

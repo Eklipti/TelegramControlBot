@@ -1,5 +1,19 @@
-# SPDX-FileCopyrightText: 2025 ControlBot contributors
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# Telegram Control Bot
+# Copyright (C) 2025 Eklipti
+#
+# Этот проект — свободное программное обеспечение: вы можете
+# распространять и/или изменять его на условиях
+# Стандартной общественной лицензии GNU (GNU GPL)
+# третьей версии, опубликованной Фондом свободного ПО.
+#
+# Программа распространяется в надежде, что она будет полезной,
+# но БЕЗ КАКИХ-ЛИБО ГАРАНТИЙ; даже без подразумеваемой гарантии
+# ТОВАРНОГО СОСТОЯНИЯ или ПРИГОДНОСТИ ДЛЯ КОНКРЕТНОЙ ЦЕЛИ.
+# Подробности см. в Стандартной общественной лицензии GNU.
+#
+# Вы должны были получить копию Стандартной общественной
+# лицензии GNU вместе с этой программой. Если это не так,
+# см. <https://www.gnu.org/licenses/>.
 
 import os
 import shutil
@@ -9,8 +23,10 @@ import time
 from aiogram.filters import Command
 from aiogram.types import BufferedInputFile, Message
 
-from ..core.logging import debug, error, info, warning
+from ..core.security import DANGEROUS_ACTIONS, get_confirmation_manager
+from ..help_texts import get_command_help_text
 from ..router import router
+
 
 # Черный список системных директорий
 SYSTEM_DIRECTORIES_BLACKLIST = {
@@ -30,15 +46,13 @@ SYSTEM_DIRECTORIES_BLACKLIST = {
     "C:\\hiberfil.sys",
     "C:\\pagefile.sys",
     "C:\\swapfile.sys",
-    # Пользовательские системные директории
     "AppData\\Local\\Temp",
     "AppData\\Local\\Microsoft\\Windows\\INetCache",
     "AppData\\Local\\Microsoft\\Windows\\WebCache",
     "AppData\\Roaming\\Microsoft\\Windows\\Recent",
-    # Другие опасные пути
     "C:\\Users\\Default",
     "C:\\Users\\Public",
-    "C:\\Documents and Settings",  # Windows XP
+    "C:\\Documents and Settings",  # ну мало ли
 }
 
 # Максимальные размеры для скачивания
@@ -106,7 +120,7 @@ def format_size(size_bytes: int) -> str:
 async def handle_upload_command(message: Message) -> None:
     args = message.text.split(maxsplit=1)
     if len(args) < 2:
-        await message.answer("❌ Укажите путь для сохранения после /upload")
+        await message.answer(get_command_help_text("upload"))
         return
 
     target_path = os.path.abspath(args[1])
@@ -133,7 +147,7 @@ async def handle_upload_command(message: Message) -> None:
 async def handle_download_command(message: Message) -> None:
     args = message.text.split(maxsplit=1)
     if len(args) < 2:
-        await message.answer("❌ Укажите путь к файлу/папке после /download")
+        await message.answer(get_command_help_text("download"))
         return
 
     path = os.path.abspath(args[1])
@@ -228,12 +242,11 @@ async def handle_download_command(message: Message) -> None:
 async def handle_cut_command(message: Message) -> None:
     args = message.text.split(maxsplit=1)
     if len(args) < 2:
-        await message.answer("❌ Укажите путь к файлу после /cut")
+        await message.answer(get_command_help_text("cut"))
         return
 
     file_path = os.path.abspath(args[1])
 
-    # Проверяем существование файла
     if not os.path.exists(file_path):
         await message.answer(f"⚠️ Файл не существует: {file_path}")
         return
@@ -241,19 +254,41 @@ async def handle_cut_command(message: Message) -> None:
         await message.answer(f"⚠️ Указанный путь не является файлом: {file_path}")
         return
 
-    from ..core.security import DANGEROUS_ACTIONS, get_confirmation_manager
+    if is_path_blacklisted(file_path):
+        await message.answer(
+            f"🚫 <b>Доступ запрещен!</b>\n\n"
+            f"Путь находится в системной директории и недоступен для скачивания/удаления."
+        )
+        return
+
+    file_size = os.path.getsize(file_path)
+    if file_size > MAX_FILE_SIZE:
+        await message.answer(
+            f"⚠️ <b>Файл слишком большой!</b>\n\n"
+            f"Размер: {format_size(file_size)}\n"
+            f"Максимум: {format_size(MAX_FILE_SIZE)}\n\n"
+            f"Эта операция не может быть выполнена."
+        )
+        return
 
     manager = get_confirmation_manager()
-    action_config = DANGEROUS_ACTIONS["file_delete"]
+
+    action_config = DANGEROUS_ACTIONS["file_cut"]
 
     await manager.create_confirmation(
         chat_id=message.chat.id,
-        action_type="file_delete",
-        action_data={"action_type": "file_delete", "action_data": {"file_path": file_path}, "file_path": file_path},
-        warning_message=action_config["warning"].format(action_data=f"Удаление файла: {file_path}"),
+        action_type="file_cut",  
+        action_data={
+            "action_type": "file_cut", 
+            "action_data": {"file_path": file_path, "file_size": file_size},
+            "file_path": file_path,
+            "file_size": file_size,
+        },
+        warning_message=action_config["warning"].format(
+            action_data=f"Файл: {file_path} ({format_size(file_size)})"
+        ),
         timeout=action_config["timeout"],
     )
-
 
 async def execute_folder_download(action_data: dict) -> None:
     """Выполняет скачивание папки после подтверждения"""

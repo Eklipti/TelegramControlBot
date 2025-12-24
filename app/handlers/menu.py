@@ -1,5 +1,19 @@
-# SPDX-FileCopyrightText: 2025 ControlBot contributors
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# Telegram Control Bot
+# Copyright (C) 2025 Eklipti
+#
+# Этот проект — свободное программное обеспечение: вы можете
+# распространять и/или изменять его на условиях
+# Стандартной общественной лицензии GNU (GNU GPL)
+# третьей версии, опубликованной Фондом свободного ПО.
+#
+# Программа распространяется в надежде, что она будет полезной,
+# но БЕЗ КАКИХ-ЛИБО ГАРАНТИЙ; даже без подразумеваемой гарантии
+# ТОВАРНОГО СОСТОЯНИЯ или ПРИГОДНОСТИ ДЛЯ КОНКРЕТНОЙ ЦЕЛИ.
+# Подробности см. в Стандартной общественной лицензии GNU.
+#
+# Вы должны были получить копию Стандартной общественной
+# лицензии GNU вместе с этой программой. Если это не так,
+# см. <https://www.gnu.org/licenses/>.
 
 """
 Система inline-меню для навигации по командам бота
@@ -8,7 +22,7 @@
 from aiogram import F
 from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message
 
-from ..core.logging import info, warning
+from ..core.logging import info, warning, error
 from ..help_texts import COMMAND_CATEGORIES, COMMAND_HELP
 from ..router import router
 
@@ -24,12 +38,6 @@ MENU_PAGES = {
 def create_main_menu_keyboard(page: int = 1) -> InlineKeyboardMarkup:
     """
     Создает клавиатуру главного меню для указанной страницы
-    
-    Args:
-        page: Номер страницы (1, 2, или 3)
-    
-    Returns:
-        InlineKeyboardMarkup с кнопками категорий и навигацией
     """
     if page not in MENU_PAGES:
         page = 1
@@ -72,12 +80,6 @@ def create_main_menu_keyboard(page: int = 1) -> InlineKeyboardMarkup:
 def create_category_keyboard(category: str) -> InlineKeyboardMarkup:
     """
     Создает клавиатуру с командами для указанной категории
-    
-    Args:
-        category: Название категории
-    
-    Returns:
-        InlineKeyboardMarkup с кнопками команд и справкой
     """
     keyboard = []
     
@@ -90,7 +92,6 @@ def create_category_keyboard(category: str) -> InlineKeyboardMarkup:
         for j in range(2):
             if i + j < len(commands):
                 cmd = commands[i + j]
-                # Используем короткое название команды для кнопки
                 cmd_text = f"/{cmd}"
                 row.append(InlineKeyboardButton(
                     text=cmd_text,
@@ -108,15 +109,7 @@ def create_category_keyboard(category: str) -> InlineKeyboardMarkup:
 
 
 def format_category_message(category: str) -> str:
-    """
-    Форматирует сообщение для отображения категории команд
-    
-    Args:
-        category: Название категории
-    
-    Returns:
-        Отформатированный текст сообщения
-    """
+    """Форматирует сообщение для отображения категории команд"""
     commands = COMMAND_CATEGORIES.get(category, [])
     
     # Заголовок
@@ -136,15 +129,7 @@ def format_category_message(category: str) -> str:
 
 
 def format_category_help_message(category: str) -> str:
-    """
-    Форматирует полную справку по всем командам категории
-    
-    Args:
-        category: Название категории
-    
-    Returns:
-        Отформатированный текст справки
-    """
+    """Форматирует полную справку по всем командам категории"""
     commands = COMMAND_CATEGORIES.get(category, [])
     
     # Заголовок
@@ -162,20 +147,14 @@ def format_category_help_message(category: str) -> str:
 
 @router.callback_query(F.data.startswith("menu:page:"))
 async def handle_menu_page_navigation(callback: CallbackQuery) -> None:
-    """
-    Обработчик навигации по страницам главного меню
-    
-    Callback data format: menu:page:N (где N = 1, 2, или 3)
-    """
+    """Обработчик навигации по страницам главного меню"""
     try:
-        # Извлекаем номер страницы
         page = int(callback.data.split(":")[-1])
         
         info(f"Пользователь {callback.from_user.id} переключился на страницу меню {page}", "menu")
         
-        # Получаем текст приветственного сообщения
         welcome_text = (
-            "🤖 <b>Добро пожаловать в ControlBot!</b>\n\n"
+            "🤖 <b>Добро пожаловать в TelegramControlBot!</b>\n\n"
             "Этот бот позволяет управлять вашим компьютером удаленно через Telegram.\n\n"
             "🔹 <b>Основные возможности:</b>\n"
             "• Запуск и остановка процессов\n"
@@ -185,14 +164,11 @@ async def handle_menu_page_navigation(callback: CallbackQuery) -> None:
             "• Управление мышью и клавиатурой\n\n"
             "📚 Выберите категорию из меню ниже или используйте /help для просмотра команд\n\n"
             "⚠️ <b>Внимание:</b> Используйте бота только на доверенных устройствах!\n"
-            "⚖️ <b>Правовое предупреждение:</b> Бот предназначен для администрирования собственных машин. "
+            "⚖️ <b>Правовое предупреждение:</b> Бот предназначен для администрирования собственных машин."
             "Использование без явного разрешения владельца запрещено."
         )
         
-        # Создаем клавиатуру для выбранной страницы
         keyboard = create_main_menu_keyboard(page)
-        
-        # Редактируем сообщение
         await callback.message.edit_text(welcome_text, reply_markup=keyboard)
         await callback.answer()
         
@@ -203,30 +179,19 @@ async def handle_menu_page_navigation(callback: CallbackQuery) -> None:
 
 @router.callback_query(F.data.startswith("category:"))
 async def handle_category_display(callback: CallbackQuery) -> None:
-    """
-    Обработчик отображения команд категории
-    
-    Callback data format: category:название_категории
-    """
+    """Обработчик отображения команд категории"""
     try:
-        # Извлекаем название категории
         category = callback.data.split(":", 1)[1]
-        
         info(f"Пользователь {callback.from_user.id} открыл категорию '{category}'", "menu")
         
-        # Проверяем, существует ли категория
         if category not in COMMAND_CATEGORIES:
             warning(f"Запрошена несуществующая категория: {category}", "menu")
             await callback.answer("⚠️ Категория не найдена", show_alert=True)
             return
         
-        # Форматируем сообщение
         message_text = format_category_message(category)
-        
-        # Создаем клавиатуру с командами
         keyboard = create_category_keyboard(category)
         
-        # Отправляем новое сообщение
         await callback.message.answer(message_text, reply_markup=keyboard)
         await callback.answer()
         
@@ -238,102 +203,140 @@ async def handle_category_display(callback: CallbackQuery) -> None:
 @router.callback_query(F.data.startswith("exec:"))
 async def handle_command_execution(callback: CallbackQuery) -> None:
     """
-    Обработчик выполнения команды через inline-кнопку
-    
-    Callback data format: exec:/команда
+    Обработчик выполнения команды через inline-кнопку.
+    Использует прямой вызов обработчиков вместо роутинга обновлений.
     """
     try:
-        # Извлекаем команду
-        command = callback.data.split(":", 1)[1]
-        
-        info(f"Пользователь {callback.from_user.id} выполнил команду '{command}' через меню", "menu")
-        
-        # Создаем синтетическое сообщение для обработки командой
-        if callback.message:
-            # Создаем Message объект с командой, используя chat из callback.message
-            from aiogram.types import Chat, User
-            
-            # Создаем синтетическое сообщение
+        command_full = callback.data.split(":", 1)[1]
+        command_name = command_full.lstrip("/").split()[0]
+
+        info(f"Пользователь {callback.from_user.id} выполнил команду '{command_full}' через меню", "menu")
+
+        # Импортируем обработчики локально во избежание циклических импортов
+        try:
+            from app.handlers.system import handle_reload, handle_tasklist
+            from app.handlers.processes import handle_processes
+            from app.handlers.paths_handlers import handle_path_global_list, handle_path_user_list, handle_paths_show_all, handle_paths_reload
+            from app.handlers.monitor import handle_monitor_list, handle_monitor_stop
+            from app.handlers.cmd import handle_cmd_update, handle_cmd_dump, handle_cmd_session_start, handle_cmd_session_stop
+            from app.handlers.remote_desktop import handle_rdp_start, handle_rdp_stop
+            from app.handlers.screen import handle_screen, handle_screen_find
+            from app.handlers.mouse_keyboard import handle_screen_mark
+            from app.handlers.stats import (
+                handle_stats, handle_stats_commands, handle_stats_users,
+                handle_stats_performance, handle_stats_patterns,
+                handle_stats_audit, handle_stats_export
+            )
+            from app.handlers.logs_export import (
+                handle_logs_export, handle_logs_export_json, handle_logs_export_csv,
+                handle_logs_export_xml, handle_logs_export_txt
+            )
+            from app.handlers.cancel import handle_cancel
+
+            # Маппинг команд на их обработчики (только для команд без обязательных аргументов)
+            pure_handlers = {
+                "reload": handle_reload,
+                "tasklist": handle_tasklist,
+                "processes": handle_processes,
+                "path_global_list": handle_path_global_list,
+                "path_user_list": handle_path_user_list,
+                "paths_show_all": handle_paths_show_all,
+                "paths_reload": handle_paths_reload,
+                "monitor_list": handle_monitor_list,
+                "monitor_stop": handle_monitor_stop,
+                "cmd_session_start": handle_cmd_session_start,
+                "cmd_session_stop": handle_cmd_session_stop,
+                "cmdupdate": handle_cmd_update,
+                "cmd_dump": handle_cmd_dump,
+                "rdp_start": handle_rdp_start,
+                "rdp_stop": handle_rdp_stop,
+                "screen": handle_screen,
+                "screen_find": handle_screen_find,
+                "screen_mark": handle_screen_mark,
+                "cancel": handle_cancel,
+                # Статистика
+                "stats": handle_stats,
+                "stats_commands": handle_stats_commands,
+                "stats_users": handle_stats_users,
+                "stats_performance": handle_stats_performance,
+                "stats_patterns": handle_stats_patterns,
+                "stats_audit": handle_stats_audit,
+                "stats_export": handle_stats_export,
+                # Логи
+                "logs_export": handle_logs_export,
+                "logs_export_json": handle_logs_export_json,
+                "logs_export_csv": handle_logs_export_csv,
+                "logs_export_xml": handle_logs_export_xml,
+                "logs_export_txt": handle_logs_export_txt,
+            }
+        except Exception as import_error:
+            error(f"Ошибка импорта обработчиков команд: {import_error}", "menu")
+            await callback.answer("⚠️ Внутренняя ошибка бота", show_alert=True)
+            return
+
+        # Если команда поддерживается для прямого запуска
+        if command_name in pure_handlers:
+            # Создаем синтетическое сообщение.
+            # Важно передать bot=callback.bot для корректной привязки контекста
             synthetic_message = Message(
-                message_id=callback.message.message_id + 1000000,  # Уникальный ID
+                message_id=callback.message.message_id,
                 date=callback.message.date,
                 chat=callback.message.chat,
                 from_user=callback.from_user,
-                text=command,
-                bot=callback.bot
+                text=command_full
             )
             
-            # Обрабатываем сообщение через диспетчер
-            # Получаем диспетчер из бота
-            from aiogram import Dispatcher
-            from aiogram.types import Update
+            if callback.bot:
+                synthetic_message._bot = callback.bot
+
+            await callback.answer(f"⚡ Выполняется: {command_name}")
             
-            # Создаем update с синтетическим сообщением
-            update = Update(
-                update_id=999999999,  # Временный ID
-                message=synthetic_message
+            # Вызываем обработчик напрямую
+            await pure_handlers[command_name](synthetic_message)
+            
+        else:
+            # Если команда требует аргументов (например, /on, /type, /upload)
+            await callback.answer(
+                f"⌨️ Эта команда требует ввода параметров.\nСкопируйте: {command_full} [параметры]", 
+                show_alert=True
             )
-            
-            # Важно: получаем диспетчер из контекста бота
-            # и обрабатываем update через него
-            try:
-                # Пытаемся получить диспетчер и обработать
-                dp = Dispatcher.get_current()
-                await dp.feed_update(callback.bot, update)
-            except Exception:
-                # Если не получилось через диспетчер, пробуем через роутер
-                await router.feed_update(callback.bot, update)
-            
-            await callback.answer(f"⚡ Выполняется: {command}")
-        
+
     except Exception as e:
-        warning(f"Ошибка выполнения команды через меню: {e}", "menu")
-        await callback.answer("⚠️ Ошибка выполнения команды", show_alert=True)
+        error(f"Ошибка выполнения команды через меню: {e}", "menu")
+        # В продакшене можно скрыть детали ошибки
+        await callback.answer(f"⚠️ Ошибка: {str(e)[:100]}", show_alert=True)
 
 
 @router.callback_query(F.data.startswith("help_cat:"))
 async def handle_category_help(callback: CallbackQuery) -> None:
-    """
-    Обработчик отображения полной справки по категории
-    
-    Callback data format: help_cat:название_категории
-    """
+    """Обработчик отображения полной справки по категории"""
     try:
-        # Извлекаем название категории
         category = callback.data.split(":", 1)[1]
-        
         info(f"Пользователь {callback.from_user.id} запросил справку по категории '{category}'", "menu")
         
-        # Проверяем, существует ли категория
         if category not in COMMAND_CATEGORIES:
             warning(f"Запрошена справка для несуществующей категории: {category}", "menu")
             await callback.answer("⚠️ Категория не найдена", show_alert=True)
             return
         
-        # Форматируем справку
         help_text = format_category_help_message(category)
         
         # Telegram ограничивает длину сообщения до 4096 символов
         if len(help_text) > 4096:
-            # Разбиваем на части
             parts = []
             current_part = ""
-            
             for line in help_text.split("\n"):
                 if len(current_part) + len(line) + 1 > 4096:
                     parts.append(current_part)
                     current_part = line + "\n"
                 else:
                     current_part += line + "\n"
-            
             if current_part:
                 parts.append(current_part)
             
-            # Отправляем части
-            for i, part in enumerate(parts):
+            for part in parts:
                 await callback.message.answer(part)
         else:
-            # Отправляем одним сообщением
             await callback.message.answer(help_text)
         
         await callback.answer("📖 Справка отправлена")
@@ -341,4 +344,3 @@ async def handle_category_help(callback: CallbackQuery) -> None:
     except Exception as e:
         warning(f"Ошибка отображения справки по категории: {e}", "menu")
         await callback.answer("⚠️ Ошибка отображения справки", show_alert=True)
-

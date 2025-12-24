@@ -1,41 +1,46 @@
-# SPDX-FileCopyrightText: 2025 ControlBot contributors
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# Telegram Control Bot
+# Copyright (C) 2025 Eklipti
+#
+# Этот проект — свободное программное обеспечение: вы можете
+# распространять и/или изменять его на условиях
+# Стандартной общественной лицензии GNU (GNU GPL)
+# третьей версии, опубликованной Фондом свободного ПО.
+#
+# Программа распространяется в надежде, что она будет полезной,
+# но БЕЗ КАКИХ-ЛИБО ГАРАНТИЙ; даже без подразумеваемой гарантии
+# ТОВАРНОГО СОСТОЯНИЯ или ПРИГОДНОСТИ ДЛЯ КОНКРЕТНОЙ ЦЕЛИ.
+# Подробности см. в Стандартной общественной лицензии GNU.
+#
+# Вы должны были получить копию Стандартной общественной
+# лицензии GNU вместе с этой программой. Если это не так,
+# см. <https://www.gnu.org/licenses/>.
 
 """
-Конфигурация путей для ControlBot
+Конфигурация путей для TelegramControlBot
 Единый источник правды для всех путей в приложении
 """
 
 import json
 import os
-import shutil
 from pathlib import Path
 from typing import Any
 
-from pydantic import BaseModel, Field, field_validator
 
+class PathsConfig:
+    """Конфигурация путей"""
 
-class PathsConfig(BaseModel):
-    """Конфигурация путей с валидацией"""
-
-    # Пути к файлам конфигурации
-    default_paths_file: Path = Field(default="jsons/DEFAULT_PATHS.json")
-    jsons_dir: Path = Field(default="jsons")
-
-    # Словари путей
-    default_paths: dict[str, Any] = Field(default_factory=dict)
-    user_paths: dict[int, dict[str, Any]] = Field(default_factory=dict)  # telegram_id -> paths
-
-    @field_validator("default_paths_file", "jsons_dir", mode="before")
-    @classmethod
-    def validate_path(cls, v):
-        """Преобразует строку в Path объект"""
-        if isinstance(v, str):
-            return Path(v)
-        return v
-
-    def model_post_init(self, __context: Any) -> None:
-        """Загружает пути после инициализации модели"""
+    def __init__(
+        self,
+        default_paths_file: str | Path = "jsons/DEFAULT_PATHS.json",
+        jsons_dir: str | Path = "jsons",
+    ) -> None:
+        """Инициализирует конфигурацию путей"""
+        self.default_paths_file = Path(default_paths_file) if isinstance(default_paths_file, str) else default_paths_file
+        self.jsons_dir = Path(jsons_dir) if isinstance(jsons_dir, str) else jsons_dir
+        
+        self.default_paths: dict[str, Any] = {}
+        self.user_paths: dict[int, dict[str, Any]] = {}  # telegram_id -> paths
+        
         self.load_default_paths()
         self.load_all_user_paths()
 

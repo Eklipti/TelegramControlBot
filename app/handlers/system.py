@@ -1,11 +1,27 @@
-# SPDX-FileCopyrightText: 2025 ControlBot contributors
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# Telegram Control Bot
+# Copyright (C) 2025 Eklipti
+#
+# Этот проект — свободное программное обеспечение: вы можете
+# распространять и/или изменять его на условиях
+# Стандартной общественной лицензии GNU (GNU GPL)
+# третьей версии, опубликованной Фондом свободного ПО.
+#
+# Программа распространяется в надежде, что она будет полезной,
+# но БЕЗ КАКИХ-ЛИБО ГАРАНТИЙ; даже без подразумеваемой гарантии
+# ТОВАРНОГО СОСТОЯНИЯ или ПРИГОДНОСТИ ДЛЯ КОНКРЕТНОЙ ЦЕЛИ.
+# Подробности см. в Стандартной общественной лицензии GNU.
+#
+# Вы должны были получить копию Стандартной общественной
+# лицензии GNU вместе с этой программой. Если это не так,
+# см. <https://www.gnu.org/licenses/>.
 
 import psutil
 from aiogram.filters import Command
 from aiogram.types import BufferedInputFile, Message
 
 from ..router import router
+from ..config import reload_settings
+from ..core.logging import info, error
 
 
 @router.message(Command("reload"))
@@ -22,7 +38,6 @@ async def handle_reload(message: Message) -> None:
         warning_message=action_config["warning"],
         timeout=action_config["timeout"],
     )
-
 
 @router.message(Command("tasklist"))
 async def handle_tasklist(message: Message) -> None:

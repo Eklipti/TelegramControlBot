@@ -1,5 +1,19 @@
-# SPDX-FileCopyrightText: 2025 ControlBot contributors
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# Telegram Control Bot
+# Copyright (C) 2025 Eklipti
+#
+# Этот проект — свободное программное обеспечение: вы можете
+# распространять и/или изменять его на условиях
+# Стандартной общественной лицензии GNU (GNU GPL)
+# третьей версии, опубликованной Фондом свободного ПО.
+#
+# Программа распространяется в надежде, что она будет полезной,
+# но БЕЗ КАКИХ-ЛИБО ГАРАНТИЙ; даже без подразумеваемой гарантии
+# ТОВАРНОГО СОСТОЯНИЯ или ПРИГОДНОСТИ ДЛЯ КОНКРЕТНОЙ ЦЕЛИ.
+# Подробности см. в Стандартной общественной лицензии GNU.
+#
+# Вы должны были получить копию Стандартной общественной
+# лицензии GNU вместе с этой программой. Если это не так,
+# см. <https://www.gnu.org/licenses/>.
 
 """
 Централизованный обработчик логирования как logging.Handler.
@@ -21,18 +35,14 @@ class CentralizedLoggingHandler(logging.Handler):
     def emit(self, record: logging.LogRecord) -> None:
         """Обрабатывает запись лога и отправляет в централизованную систему."""
         try:
-            # Преобразуем уровень логирования в строку
             level_name = logging.getLevelName(record.levelno)
             
-            # Извлекаем дополнительную информацию из record
             extra_data = {}
             if hasattr(record, 'extra_data'):
                 extra_data = record.extra_data
             elif hasattr(record, 'args') and record.args:
-                # Если есть аргументы, добавляем их как extra_data
                 extra_data = {'args': record.args}
             
-            # Добавляем информацию о функции и модуле
             extra_data.update({
                 'module': record.module,
                 'funcName': record.funcName,
@@ -45,16 +55,13 @@ class CentralizedLoggingHandler(logging.Handler):
             
             # Специальная обработка для TRACE уровня
             if record.levelno == 5:  # TRACE level
-                # Проверяем, является ли это специальным TRACE сообщением
                 message = record.getMessage()
                 if message.startswith("ENTER: "):
                     extra_data['type'] = 'function_entry'
-                    # Извлекаем имя функции из сообщения
                     function_name = message[7:].split('(')[0]
                     extra_data['function_name'] = function_name
                 elif message.startswith("EXIT: "):
                     extra_data['type'] = 'function_exit'
-                    # Извлекаем имя функции из сообщения
                     function_name = message[6:].split(' ')[0]
                     extra_data['function_name'] = function_name
                 elif message.startswith("STEP: "):

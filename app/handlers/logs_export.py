@@ -1,5 +1,19 @@
-# SPDX-FileCopyrightText: 2025 ControlBot contributors
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# Telegram Control Bot
+# Copyright (C) 2025 Eklipti
+#
+# Этот проект — свободное программное обеспечение: вы можете
+# распространять и/или изменять его на условиях
+# Стандартной общественной лицензии GNU (GNU GPL)
+# третьей версии, опубликованной Фондом свободного ПО.
+#
+# Программа распространяется в надежде, что она будет полезной,
+# но БЕЗ КАКИХ-ЛИБО ГАРАНТИЙ; даже без подразумеваемой гарантии
+# ТОВАРНОГО СОСТОЯНИЯ или ПРИГОДНОСТИ ДЛЯ КОНКРЕТНОЙ ЦЕЛИ.
+# Подробности см. в Стандартной общественной лицензии GNU.
+#
+# Вы должны были получить копию Стандартной общественной
+# лицензии GNU вместе с этой программой. Если это не так,
+# см. <https://www.gnu.org/licenses/>.
 
 """
 Обработчики команд для экспорта логов в разные форматы.
@@ -13,6 +27,7 @@ from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message
 
 from ..core.logging import debug, error, info, trace, trace_function_entry, trace_function_exit
 from ..core.metrics_decorator import track_command_metrics
+from ..help_texts import get_command_help_text
 from ..router import router
 from ..services.centralized_logging import get_centralized_logger
 
@@ -54,7 +69,7 @@ async def handle_logs_export(message: Message) -> None:
         )
         
         stats_text = f"""
-📋 <b>Экспорт логов ControlBot</b>
+📋 <b>Экспорт логов TelegramControlBot</b>
 
 📊 <b>Статистика логов:</b>
 • Всего логов: {log_stats.get('total_logs', 0)}
@@ -105,7 +120,7 @@ async def handle_logs_export_json(message: Message) -> None:
         
         # Отправляем файл
         from aiogram.types import FSInputFile
-        file_input = FSInputFile(export_path, filename=f"controlbot_logs_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json")
+        file_input = FSInputFile(export_path, filename=f"TelegramControlBot_logs_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json")
         await message.answer_document(file_input, caption="📄 Экспорт логов в JSON формате")
         
         # Удаляем сообщение о процессе
@@ -137,7 +152,7 @@ async def handle_logs_export_csv(message: Message) -> None:
         export_path = await centralized_logger.export_to_csv()
         
         from aiogram.types import FSInputFile
-        file_input = FSInputFile(export_path, filename=f"controlbot_logs_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv")
+        file_input = FSInputFile(export_path, filename=f"TelegramControlBot_logs_{datetime.now().strftime('%Y%m%d_%H%M%S')}.csv")
         await message.answer_document(file_input, caption="📊 Экспорт логов в CSV формате")
         
         await processing_msg.delete()
@@ -168,7 +183,7 @@ async def handle_logs_export_xml(message: Message) -> None:
         export_path = await centralized_logger.export_to_xml()
         
         from aiogram.types import FSInputFile
-        file_input = FSInputFile(export_path, filename=f"controlbot_logs_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xml")
+        file_input = FSInputFile(export_path, filename=f"TelegramControlBot_logs_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xml")
         await message.answer_document(file_input, caption="🔧 Экспорт логов в XML формате")
         
         await processing_msg.delete()
@@ -199,7 +214,7 @@ async def handle_logs_export_txt(message: Message) -> None:
         export_path = await centralized_logger.export_to_text()
         
         from aiogram.types import FSInputFile
-        file_input = FSInputFile(export_path, filename=f"controlbot_logs_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt")
+        file_input = FSInputFile(export_path, filename=f"TelegramControlBot_logs_{datetime.now().strftime('%Y%m%d_%H%M%S')}.txt")
         await message.answer_document(file_input, caption="📝 Экспорт логов в текстовом формате")
         
         await processing_msg.delete()
@@ -227,23 +242,7 @@ async def handle_logs_filter(message: Message) -> None:
         args = message.text.split()[1:] if len(message.text.split()) > 1 else []
         
         if not args:
-            help_text = """
-🔍 <b>Фильтрация логов</b>
-
-<b>Использование:</b>
-<code>/logs_filter [опции]</code>
-
-<b>Опции:</b>
-• <code>--level ERROR</code> - только ошибки
-• <code>--logger auth</code> - только логи авторизации
-• <code>--hours 24</code> - за последние N часов
-• <code>--limit 100</code> - максимум записей
-
-<b>Примеры:</b>
-<code>/logs_filter --level ERROR --hours 1</code>
-<code>/logs_filter --logger auth --limit 50</code>
-"""
-            await message.answer(help_text)
+            await message.answer(get_command_help_text("logs_filter"))
             trace_function_exit("handle_logs_filter", result="help", logger_name="logs_export_handler")
             return
         

@@ -1,5 +1,19 @@
-# SPDX-FileCopyrightText: 2025 ControlBot contributors
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# Telegram Control Bot
+# Copyright (C) 2025 Eklipti
+#
+# Этот проект — свободное программное обеспечение: вы можете
+# распространять и/или изменять его на условиях
+# Стандартной общественной лицензии GNU (GNU GPL)
+# третьей версии, опубликованной Фондом свободного ПО.
+#
+# Программа распространяется в надежде, что она будет полезной,
+# но БЕЗ КАКИХ-ЛИБО ГАРАНТИЙ; даже без подразумеваемой гарантии
+# ТОВАРНОГО СОСТОЯНИЯ или ПРИГОДНОСТИ ДЛЯ КОНКРЕТНОЙ ЦЕЛИ.
+# Подробности см. в Стандартной общественной лицензии GNU.
+#
+# Вы должны были получить копию Стандартной общественной
+# лицензии GNU вместе с этой программой. Если это не так,
+# см. <https://www.gnu.org/licenses/>.
 
 import asyncio
 import ctypes
@@ -8,6 +22,7 @@ import os
 import shlex
 import subprocess
 import sys
+import uuid
 
 from aiogram import F
 from aiogram.filters import Command
@@ -16,6 +31,8 @@ from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMar
 from ..config.paths import get_paths_config
 from ..core.logging import error, info, warning
 from ..router import router
+from ..state import path_save_requests
+from ..help_texts import get_command_help_text
 
 active_processes: dict[str, subprocess.Popen] = {}
 
@@ -24,18 +41,7 @@ active_processes: dict[str, subprocess.Popen] = {}
 async def handle_on(message: Message) -> None:
     args = message.text.split(maxsplit=1)
     if len(args) < 2:
-        examples = (
-            "Примеры использования:\n"
-            "/on EvilBot\n"
-            "/on cmd /K\n"
-            "/on powershell -NoExit\n"
-            '/on "C:/my bot.py" --debug\n'
-            "/on notepad.exe C:/file.txt\n"
-            "/on hidden:EvilBot_ALT\n"
-            "/on admin:cmd.exe\n"
-            "/on explorer.exe C:/Windows"
-        )
-        await message.answer(f"❌ Укажите имя бота или путь к файлу\n\n{examples}")
+        await message.answer(get_command_help_text("on"))
         return
 
     input_arg = args[1].strip()
@@ -43,6 +49,7 @@ async def handle_on(message: Message) -> None:
     admin_mode = False
     arguments: list[str] = []
 
+    # Обработка префиксов
     if input_arg.startswith("hidden:"):
         hidden_mode = True
         input_arg = input_arg[7:]
@@ -50,11 +57,14 @@ async def handle_on(message: Message) -> None:
         admin_mode = True
         input_arg = input_arg[6:]
 
+    # Разделение на команду и аргументы
     if " " in input_arg:
         parts = input_arg.split(" ", 1)
         input_arg = parts[0]
+        # shlex.split корректно обрабатывает кавычки
         arguments = shlex.split(parts[1]) if " " in parts[1] else [parts[1]]
 
+    # Поиск файла 
     file_path: str | None = None
     custom_path = False
     process_key: str | None = None
@@ -64,64 +74,65 @@ async def handle_on(message: Message) -> None:
     user_id = message.from_user.id
     all_paths = config.get_all_paths(user_id)
 
+    # Ищем в сохраненных путях
     if input_arg in all_paths:
-        if input_arg == "8k":
-            for path in all_paths["8k"]:
-                if os.path.exists(path):
-                    file_path = path
+        # берем первый существующий
+        val = all_paths.get(input_arg)
+        if isinstance(val, list):
+            for v in val:
+                if os.path.exists(str(v)):
+                    file_path = str(v)
                     break
         else:
-            file_path = all_paths.get(input_arg)
+            file_path = str(val)
         process_key = input_arg
     else:
-        # DEFAULT_PATHS.json уже содержит весь системный PATH,
-        # но на всякий случай проверяем системные директории для базовых команд
+        # Ищем как прямой путь или системную команду
         found = False
         
-        # Для Windows проверяем стандартные системные команды
-        if os.name == "nt" and not os.path.isabs(input_arg):
+        # Проверка стандартных путей Windows (System32 и т.д.)
+        if not os.path.isabs(input_arg):
             system_dirs = [
                 os.path.join(os.environ.get("SystemRoot", "C:\\Windows"), "System32"),
                 os.path.join(os.environ.get("SystemRoot", "C:\\Windows"), "SysWOW64"),
+                os.getcwd() # Текущая папка бота
             ]
+            # Список расширений, которые пробуем подставить
+            extensions = ["", ".exe", ".bat", ".cmd", ".com", ".lnk"]
+            
             for sys_dir in system_dirs:
-                for ext in [".exe", ".cmd", ".bat"]:
-                    candidate = os.path.join(sys_dir, input_arg if input_arg.lower().endswith(ext) else input_arg + ext)
+                for ext in extensions:
+                    # Если расширение уже есть, не дублируем его
+                    if ext and input_arg.lower().endswith(ext):
+                        candidate = os.path.join(sys_dir, input_arg)
+                    else:
+                        candidate = os.path.join(sys_dir, input_arg + ext)
+                    
                     if os.path.exists(candidate):
                         file_path = candidate
                         custom_path = True
                         process_key = os.path.abspath(file_path)
                         new_path_found = True
                         found = True
-                        info(f"Найдена системная команда: {file_path}", "processes")
                         break
                 if found:
                     break
         
-        # Проверяем как прямой путь к файлу
-        if not found and not os.path.isabs(input_arg):
-            # Для относительных путей сначала проверяем в текущей директории
-            if os.path.exists(input_arg):
-                file_path = os.path.abspath(input_arg)
+        # Если всё ещё не нашли, пробуем как абсолютный путь
+        if not found:
+            abs_candidate = os.path.abspath(input_arg)
+            if os.path.exists(abs_candidate):
+                file_path = abs_candidate
                 custom_path = True
                 process_key = file_path
                 new_path_found = True
                 found = True
-            else:
-                # Если не найден, делаем абсолютным относительно рабочей директории
-                input_arg = os.path.abspath(input_arg)
-
-        if not found and os.path.exists(input_arg):
-            file_path = input_arg
-            custom_path = True
-            process_key = os.path.abspath(file_path)
-            new_path_found = True
-            found = True
 
         if not found:
-            await message.answer(f"❌ Файл не найден: {input_arg}\n\nℹ️ Используйте имя из сохраненных путей (/paths) или полный путь к файлу")
+            await message.answer(f"❌ Файл не найден: {input_arg}")
             return
 
+    # Проверка на повторный запуск
     assert file_path is not None and process_key is not None
 
     if process_key in active_processes:
@@ -131,130 +142,201 @@ async def handle_on(message: Message) -> None:
             return
         del active_processes[process_key]
 
+    # Запуск
     working_dir = os.path.dirname(file_path)
-    cmd: list[str] = []
-    creationflags = 0
+    
+    # Подготовка сообщения об успехе
+    reply_msg_base = f"✅ Успешно запущен: {os.path.basename(file_path)}"
+    if custom_path:
+        reply_msg_base += f"\n📁 Путь: {file_path}"
+    if arguments:
+        reply_msg_base += f"\n⚙️ Аргументы: {' '.join(arguments)}"
+    if hidden_mode:
+        reply_msg_base += "\n👻 Режим: скрытый"
+
+    # Кнопка сохранения
+    markup = None
+    if new_path_found and input_arg not in all_paths:
+        request_id = str(uuid.uuid4())[:8]
+        alias_name = os.path.basename(input_arg)
+        path_save_requests[request_id] = (alias_name, file_path)
+        markup = InlineKeyboardMarkup(
+            inline_keyboard=[
+                [InlineKeyboardButton(text=f"💾 Сохранить как '{alias_name}'", callback_data=f"save_path:{request_id}")]
+            ]
+        )
 
     try:
-        if os.name == "nt":
+        if admin_mode:
+            await message.answer("⚠️ Запрос прав администратора (подтвердите UAC на экране)...")
+            
+            # Собираем параметры в одну строку для ShellExecute
+            params_str = ""
+            if arguments:
+                # Оборачиваем в кавычки аргументы с пробелами
+                params_str = " ".join(f'"{a}"' if " " in a else a for a in arguments)
+
+            # 0 = SW_HIDE, 1 = SW_SHOWNORMAL
+            show_cmd = 0 if hidden_mode else 1
+            
+            # ShellExecute сам разберется с типами файлов
+            result = ctypes.windll.shell32.ShellExecuteW(
+                None, 
+                "runas",      # Verb: запуск от админа
+                file_path,    # File: путь к файлу (exe, bat, py, txt...)
+                params_str,   # Params
+                working_dir,  # Directory
+                show_cmd      # ShowCmd
+            )
+            
+            # Если результат > 32, значит успех
+            if result <= 32:
+                raise OSError(f"ShellExecute error code: {result}")
+            
+            info(f"Процесс запущен (Admin): {file_path}", "processes")
+            reply_msg_base += "\n🛡️ Режим: администратор"
+            await message.answer(reply_msg_base, reply_markup=markup)
+            
+        else:
+            # Обычный запуск
+            # subprocess.Popen c shell=True на Windows работает аналогично win+r
+            
+            # Формируем команду. Если есть пробелы в пути к файлу, subprocess их обработает,
+            # но для shell=True лучше передавать список или корректно экранированную строку.
+            # На Windows список аргументов при shell=True работает так: первый элемент - команда, остальные - аргументы.
+            
+            cmd_args = [file_path] + arguments
+            
+            creationflags = 0
             if hidden_mode:
                 creationflags = subprocess.CREATE_NO_WINDOW
             else:
+                # отвязывает процесс от консоли бота
                 creationflags = subprocess.CREATE_NEW_CONSOLE
-            if admin_mode:
-                await message.answer("⚠️ Режим admin требует локального подтверждения UAC.")
-                # Используем ShellExecute с "runas" для вызова UAC диалога
-                try:
-                    # Формируем команду и параметры
-                    if file_path.lower().endswith(".py"):
-                        executable = sys.executable
-                        params = f'"{file_path}"'
-                        if arguments:
-                            params += " " + " ".join(f'"{arg}"' if " " in arg else arg for arg in arguments)
-                    else:
-                        executable = file_path
-                        params = " ".join(f'"{arg}"' if " " in arg else arg for arg in arguments) if arguments else ""
-                    
-                    # ShellExecute для UAC
-                    # SW_SHOWNORMAL = 1 (нормальное окно), SW_HIDE = 0 (скрытое)
-                    show_cmd = 0 if hidden_mode else 1
-                    
-                    result = ctypes.windll.shell32.ShellExecuteW(
-                        None,           # hwnd
-                        "runas",        # lpVerb - запуск от имени администратора
-                        executable,     # lpFile
-                        params,         # lpParameters
-                        working_dir,    # lpDirectory
-                        show_cmd        # nShowCmd
-                    )
-                    
-                    # ShellExecute возвращает значение > 32 при успехе
-                    if result <= 32:
-                        await message.answer(f"❌ Ошибка запуска с правами администратора. Код: {result}")
-                        return
-                    
-                    info(f"Процесс запущен с правами администратора: {file_path}", "processes")
-                    
-                    # Формируем ответное сообщение
-                    reply_msg = f"✅ Успешно запущен: {os.path.basename(file_path)}"
-                    if custom_path:
-                        reply_msg += f"\n📁 Путь: {file_path}"
-                    if arguments:
-                        reply_msg += f"\n⚙️ Аргументы: {' '.join(arguments)}"
-                    if hidden_mode:
-                        reply_msg += "\n👻 Режим: скрытый"
-                    reply_msg += "\n🛡️ Режим: администратор (UAC требует подтверждения)"
-                    
-                    if new_path_found and input_arg not in all_paths:
-                        markup = InlineKeyboardMarkup(
-                            inline_keyboard=[
-                                [InlineKeyboardButton(text="💾 Сохранить путь", callback_data=f"save_path:{input_arg}:{file_path}")]
-                            ]
-                        )
-                        await message.answer(reply_msg, reply_markup=markup)
-                    else:
-                        await message.answer(reply_msg)
-                    return
-                    
-                except Exception as e:
-                    error(f"Ошибка при вызове ShellExecute: {e}", "processes")
-                    await message.answer(f"❌ Ошибка запуска с правами администратора: {e}")
-                    return
-            else:
-                if file_path.lower().endswith(".py"):
-                    cmd = [sys.executable, file_path]
-                    cmd.extend(arguments)
-                else:
-                    cmd = [file_path]
-                    cmd.extend(arguments)
-        else:
-            if file_path.lower().endswith(".py"):
-                cmd = [sys.executable, file_path]
-            else:
-                cmd = [file_path]
-            cmd.extend(arguments)
-            if admin_mode:
-                await message.answer("⚠️ sudo без TTY/пароля может подвиснуть; запуск не гарантируется.")
-                cmd = ["sudo"] + cmd
 
-        proc = subprocess.Popen(cmd, cwd=working_dir, creationflags=creationflags)
-        active_processes[process_key] = proc
-        
-        reply_msg = f"✅ Успешно запущен: {os.path.basename(file_path)}"
-        if custom_path:
-            reply_msg += f"\n📁 Путь: {file_path}"
-        if arguments:
-            reply_msg += f"\n⚙️ Аргументы: {' '.join(arguments)}"
-        if hidden_mode:
-            reply_msg += "\n👻 Режим: скрытый"
-        if admin_mode:
-            reply_msg += "\n🛡️ Режим: администратор (UAC требует подтверждения)"
-
-        if new_path_found and input_arg not in all_paths:
-            markup = InlineKeyboardMarkup(
-                inline_keyboard=[
-                    [InlineKeyboardButton(text="💾 Сохранить путь", callback_data=f"save_path:{input_arg}:{file_path}")]
-                ]
+            proc = subprocess.Popen(
+                cmd_args, 
+                cwd=working_dir, 
+                creationflags=creationflags,
+                shell=True # Позволяет запускать не только .exe
             )
-            await message.answer(reply_msg, reply_markup=markup)
-        else:
-            await message.answer(reply_msg)
+            
+            active_processes[process_key] = proc
+            await message.answer(reply_msg_base, reply_markup=markup)
+
     except Exception as e:
         logging.exception("Ошибка запуска процесса")
-        err = str(e)
-        error_msg = (
-            f"⚠️ Ошибка запуска: len={len(err)}, first='{err[0] if err else ''}', last='{err[-1] if err else ''}'"  # noqa: E501
+        err_msg = str(e)
+        # Если ошибка "не является приложением Win32", пробуем os.startfile как fallback
+        if "Win32" in err_msg or "OSError" in err_msg:
+            try:
+                os.startfile(file_path)
+                await message.answer(f"✅ Запущено через os.startfile: {file_path}\n(PID не отслеживается)")
+                return
+            except Exception:
+                pass
+        
+        await message.answer(f"⚠️ Ошибка запуска: {err_msg}")
+
+@router.callback_query(F.data.startswith("save_path"))
+async def handle_save_path_callback(call: CallbackQuery) -> None:
+    try:
+        parts = call.data.split(":", 1)
+        if len(parts) < 2:
+            await call.answer("⚠️ Ошибка данных", show_alert=True)
+            return
+            
+        request_id = parts[1]
+        if request_id not in path_save_requests:
+            await call.answer("⚠️ Ссылка устарела", show_alert=True)
+            return
+            
+        name, path = path_save_requests.pop(request_id)
+        config = get_paths_config()
+        
+        if config.add_user_path(call.from_user.id, name, path):
+            await call.message.edit_text(
+                f"✅ Путь сохранен!\n\nИмя: <code>{name}</code>\nПуть: {path}"
+            )
+        else:
+            await call.answer("❌ Путь не существует", show_alert=True)
+            
+    except Exception as e:
+        logging.exception("Ошибка callback")
+        await call.answer(f"❌ Ошибка: {e}", show_alert=True)
+
+
+@router.message(Command("off"))
+async def handle_off(message: Message) -> None:
+    args = message.text.split(maxsplit=1)
+    
+    if len(args) < 2:
+        await message.answer(get_command_help_text("off"))
+        return
+
+    target = args[1].strip()
+
+    # Остановка всех
+    if target.lower() == "all":
+        from ..core.security import DANGEROUS_ACTIONS, get_confirmation_manager
+        manager = get_confirmation_manager()
+        action_config = DANGEROUS_ACTIONS["process_stop_all"]
+
+        await manager.create_confirmation(
+            chat_id=message.chat.id,
+            action_type="process_stop_all",
+            action_data={"action_type": "process_stop_all", "action_data": {"target": "all"}},
+            warning_message=action_config["warning"],
+            timeout=action_config["timeout"],
         )
-        if os.name == "nt":
-            if "не является приложением Win32" in str(e):
-                try:
-                    os.startfile(file_path)  # type: ignore[attr-defined]
-                    await message.answer(f"✅ Запущено через ассоциированную программу: {file_path}")
-                    return
-                except Exception as startfile_error:
-                    logging.exception("Ошибка при запуске через ассоциацию")
-                    error_msg += f"\nℹ️ Ошибка при запуске через ассоциацию: {startfile_error}"
-        await message.answer(error_msg)
+        return
+
+    # Поиск процесса
+    matched_proc: subprocess.Popen | None = None
+    matched_name: str | None = None
+    
+    # Поиск по PID
+    if target.isdigit():
+        pid = int(target)
+        for name, proc in active_processes.items():
+            if proc.pid == pid:
+                matched_proc = proc
+                matched_name = name
+                break
+    
+    # Поиск по имени
+    if not matched_proc:
+        target_lower = target.lower()
+        for name, proc in active_processes.items():
+            if os.path.basename(name).lower().startswith(target_lower):
+                matched_proc = proc
+                matched_name = name
+                break
+
+    # Результат поиска
+    if not matched_proc or not matched_name:
+        await message.answer(f"❌ Процесс '{target}' не найден в списке запущенных ботом.")
+        return
+
+    if matched_proc.poll() is not None:
+        active_processes.pop(matched_name, None)
+        await message.answer(f"ℹ️ Процесс '{os.path.basename(matched_name)}' уже завершен")
+        return
+
+    # Запрос подтверждения
+    from ..core.security import DANGEROUS_ACTIONS, get_confirmation_manager
+    manager = get_confirmation_manager()
+    action_config = DANGEROUS_ACTIONS["process_stop"]
+
+    await manager.create_confirmation(
+        chat_id=message.chat.id,
+        action_type="process_stop",
+        action_data={"action_type": "process_stop", "action_data": {"target": target}, "target": target},
+        warning_message=action_config["warning"].format(
+            action_data=f"Остановка процесса: {os.path.basename(matched_name)} (PID: {matched_proc.pid})"
+        ),
+        timeout=action_config["timeout"],
+    )
 
 
 @router.message(Command("processes"))
@@ -270,8 +352,6 @@ async def handle_processes(message: Message) -> None:
     await message.answer(response)
 
 
-@router.message(Command("off"))
-async def handle_off(message: Message) -> None:
     args = message.text.split()
     if len(args) < 2:
         active_list = []
@@ -345,18 +425,3 @@ async def handle_off(message: Message) -> None:
         ),  # noqa: E501
         timeout=action_config["timeout"],
     )
-
-
-@router.callback_query(F.data.startswith("save_path"))
-async def handle_save_path_callback(call: CallbackQuery) -> None:
-    try:
-        _, name, path = call.data.split(":", 2)
-        config = get_paths_config()
-        user_id = call.from_user.id
-        if config.add_user_path(user_id, name, path):
-            await call.message.edit_text(f"✅ Путь сохранен: {name} → {path}")
-        else:
-            await call.answer("Ошибка: путь не существует", show_alert=True)
-    except Exception:
-        logging.exception("Ошибка сохранения пути")
-        await call.answer("Ошибка сохранения", show_alert=True)

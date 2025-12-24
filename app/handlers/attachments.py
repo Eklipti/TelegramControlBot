@@ -1,5 +1,19 @@
-# SPDX-FileCopyrightText: 2025 ControlBot contributors
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# Telegram Control Bot
+# Copyright (C) 2025 Eklipti
+#
+# Этот проект — свободное программное обеспечение: вы можете
+# распространять и/или изменять его на условиях
+# Стандартной общественной лицензии GNU (GNU GPL)
+# третьей версии, опубликованной Фондом свободного ПО.
+#
+# Программа распространяется в надежде, что она будет полезной,
+# но БЕЗ КАКИХ-ЛИБО ГАРАНТИЙ; даже без подразумеваемой гарантии
+# ТОВАРНОГО СОСТОЯНИЯ или ПРИГОДНОСТИ ДЛЯ КОНКРЕТНОЙ ЦЕЛИ.
+# Подробности см. в Стандартной общественной лицензии GNU.
+#
+# Вы должны были получить копию Стандартной общественной
+# лицензии GNU вместе с этой программой. Если это не так,
+# см. <https://www.gnu.org/licenses/>.
 
 import io
 import os
@@ -54,24 +68,6 @@ async def handle_file(message: Message) -> None:
         except Exception as e:
             error(f"Ошибка при загрузке файла для пользователя {chat_id}: {e}", "attachments")
             await message.answer(f"⚠️ Ошибка при загрузке файла: {e}")
-        return
-
-    if chat_id in download_requests:
-        file_path = download_requests.pop(chat_id)
-        info(f"Начало скачивания файла {file_path} для пользователя {chat_id}", "attachments")
-        try:
-            if not os.path.exists(file_path):
-                warning(f"Файл не существует: {file_path}", "attachments")
-                await message.answer(f"⚠️ Файл не существует: {file_path}")
-                return
-            with open(file_path, "rb") as f:
-                await message.answer_document(
-                    BufferedInputFile(f.read(), filename=os.path.basename(file_path)), caption=f"📥 Файл: {file_path}"
-                )  # noqa: E501
-            info(f"Файл успешно отправлен: {file_path}", "attachments")
-        except Exception as e:
-            error(f"Ошибка при отправке файла {file_path} для пользователя {chat_id}: {e}", "attachments")
-            await message.answer(f"⚠️ Ошибка при отправке файла: {e}")
         return
 
     if message.photo and message.chat.id in screen_find_requests:

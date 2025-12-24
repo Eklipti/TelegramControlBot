@@ -1,5 +1,19 @@
-# SPDX-FileCopyrightText: 2025 ControlBot contributors
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# Telegram Control Bot
+# Copyright (C) 2025 Eklipti
+#
+# Этот проект — свободное программное обеспечение: вы можете
+# распространять и/или изменять его на условиях
+# Стандартной общественной лицензии GNU (GNU GPL)
+# третьей версии, опубликованной Фондом свободного ПО.
+#
+# Программа распространяется в надежде, что она будет полезной,
+# но БЕЗ КАКИХ-ЛИБО ГАРАНТИЙ; даже без подразумеваемой гарантии
+# ТОВАРНОГО СОСТОЯНИЯ или ПРИГОДНОСТИ ДЛЯ КОНКРЕТНОЙ ЦЕЛИ.
+# Подробности см. в Стандартной общественной лицензии GNU.
+#
+# Вы должны были получить копию Стандартной общественной
+# лицензии GNU вместе с этой программой. Если это не так,
+# см. <https://www.gnu.org/licenses/>.
 
 import cv2
 import numpy as np
@@ -7,16 +21,23 @@ import pyautogui
 from aiogram.filters import Command
 from aiogram.types import BufferedInputFile, Message
 
+from ..help_texts import get_command_help_text
 from ..router import router
 from ..state import mouse_positions
 
 
 @router.message(Command("mouse_move_rel"))
 async def handle_mouse_move_rel(message: Message) -> None:
+    parts = message.text.split()
+    if len(parts) < 3:
+        await message.answer(get_command_help_text("mouse_move_rel"))
+        return
     try:
-        _, dx, dy = message.text.split()
-        pyautogui.moveRel(int(dx), int(dy))
-        await message.answer(f"🖱 Мышь перемещена на ({dx}, {dy})")
+        dx, dy = parts[1], parts[2]
+        dx_val = int(dx)
+        dy_val = int(dy)
+        pyautogui.moveRel(dx_val, dy_val)
+        await message.answer(f"🖱 Мышь перемещена на ({dx_val}, {dy_val})")
     except Exception as e:
         await message.answer(f"⚠️ Ошибка: {e}\nИспользуйте: /mouse_move_rel dx dy")
 
@@ -48,8 +69,12 @@ async def handle_screen_mark(message: Message) -> None:
 
 @router.message(Command("mouse_save"))
 async def handle_mouse_save(message: Message) -> None:
+    parts = message.text.split()
+    if len(parts) < 2:
+        await message.answer(get_command_help_text("mouse_save"))
+        return
     try:
-        name = message.text.split()[1]
+        name = parts[1]
         x, y = pyautogui.position()
         mouse_positions[name] = (x, y)
         await message.answer(f"📍 Позиция сохранена как '{name}' ({x}, {y})")
@@ -59,8 +84,12 @@ async def handle_mouse_save(message: Message) -> None:
 
 @router.message(Command("mouse_goto"))
 async def handle_mouse_goto(message: Message) -> None:
+    parts = message.text.split()
+    if len(parts) < 2:
+        await message.answer(get_command_help_text("mouse_goto"))
+        return
     try:
-        name = message.text.split()[1]
+        name = parts[1]
         x, y = mouse_positions[name]
         pyautogui.moveTo(x, y)
         await message.answer(f"🖱 Мышь перемещена в позицию '{name}' ({x}, {y})")
@@ -71,8 +100,12 @@ async def handle_mouse_goto(message: Message) -> None:
 
 @router.message(Command("mouse_speed"))
 async def handle_mouse_speed(message: Message) -> None:
+    parts = message.text.split()
+    if len(parts) < 2:
+        await message.answer(get_command_help_text("mouse_speed"))
+        return
     try:
-        speed = float(message.text.split()[1])
+        speed = float(parts[1])
         pyautogui.MINIMUM_DURATION = speed
         pyautogui.MINIMUM_SLEEP = speed
         await message.answer(f"⚡ Скорость мыши установлена: {speed} сек")
@@ -82,10 +115,16 @@ async def handle_mouse_speed(message: Message) -> None:
 
 @router.message(Command("mouse_move"))
 async def handle_mouse_move(message: Message) -> None:
+    parts = message.text.split()
+    if len(parts) < 3:
+        await message.answer(get_command_help_text("mouse_move"))
+        return
     try:
-        _, x, y = message.text.split()
-        pyautogui.moveTo(int(x), int(y))
-        await message.answer(f"🖱 Мышь перемещена в ({x}, {y})")
+        x, y = parts[1], parts[2]
+        x_val = int(x)
+        y_val = int(y)
+        pyautogui.moveTo(x_val, y_val)
+        await message.answer(f"🖱 Мышь перемещена в ({x_val}, {y_val})")
     except Exception as e:
         await message.answer(f"⚠️ Ошибка: {e}\nИспользуйте: /mouse_move x y")
 
@@ -104,9 +143,13 @@ async def handle_mouse_click(message: Message) -> None:
 
 @router.message(Command("mouse_scroll"))
 async def handle_mouse_scroll(message: Message) -> None:
+    parts = message.text.split()
+    if len(parts) < 2:
+        await message.answer(get_command_help_text("mouse_scroll"))
+        return
     try:
-        _, steps = message.text.split()
-        pyautogui.scroll(int(steps))
+        steps = int(parts[1])
+        pyautogui.scroll(steps)
         await message.answer(f"🖱 Скролл на {steps} шагов")
     except Exception as e:
         await message.answer(f"⚠️ Ошибка: {e}\nИспользуйте: /mouse_scroll steps")
@@ -117,7 +160,7 @@ async def handle_key_press(message: Message) -> None:
     try:
         args = message.text.split()[1:]
         if not args:
-            await message.answer("⚠️ Укажите клавиши для нажатия")
+            await message.answer(get_command_help_text("key"))
             return
         keys_str = " ".join(args)
         keys = [k.strip() for k in keys_str.split("+") if k.strip()]
@@ -135,8 +178,12 @@ async def handle_key_press(message: Message) -> None:
 
 @router.message(Command("type"))
 async def handle_type_text(message: Message) -> None:
+    parts = message.text.split(" ", 1)
+    if len(parts) < 2 or not parts[1].strip():
+        await message.answer(get_command_help_text("type"))
+        return
     try:
-        text = message.text.split(" ", 1)[1]
+        text = parts[1]
         pyautogui.typewrite(text)
         await message.answer(f"⌨ Введен текст: {text}")
     except Exception as e:

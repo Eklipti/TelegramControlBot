@@ -1,5 +1,19 @@
-# SPDX-FileCopyrightText: 2025 ControlBot contributors
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# Telegram Control Bot
+# Copyright (C) 2025 Eklipti
+#
+# Этот проект — свободное программное обеспечение: вы можете
+# распространять и/или изменять его на условиях
+# Стандартной общественной лицензии GNU (GNU GPL)
+# третьей версии, опубликованной Фондом свободного ПО.
+#
+# Программа распространяется в надежде, что она будет полезной,
+# но БЕЗ КАКИХ-ЛИБО ГАРАНТИЙ; даже без подразумеваемой гарантии
+# ТОВАРНОГО СОСТОЯНИЯ или ПРИГОДНОСТИ ДЛЯ КОНКРЕТНОЙ ЦЕЛИ.
+# Подробности см. в Стандартной общественной лицензии GNU.
+#
+# Вы должны были получить копию Стандартной общественной
+# лицензии GNU вместе с этой программой. Если это не так,
+# см. <https://www.gnu.org/licenses/>.
 
 import tempfile
 import os
@@ -9,6 +23,7 @@ from aiogram.types import Message, BufferedInputFile
 
 from ..config.paths import get_paths_config
 from ..core.logging import error, info
+from ..help_texts import get_command_help_text
 from ..router import router
 
 
@@ -21,11 +36,14 @@ async def send_paths_as_file(message: Message, content: str, filename: str, capt
             filename=filename
         )
         
-        await message.bot.send_document(
-            chat_id=message.chat.id,
+        # ИСПОЛЬЗУЕМ message.answer_document ВМЕСТО message.bot.send_document
+        # Это безопаснее и короче. Если message.bot был None (до фикса выше), 
+        # это выбросило бы понятную ошибку "Method not mounted", а не AttributeError.
+        await message.answer_document(
             document=input_file,
             caption=caption
         )
+
         info(f"Successfully sent paths file: {filename}")
     except Exception as e:
         error(f"Failed to send paths file {filename}: {e}")
@@ -69,7 +87,7 @@ async def handle_path_user_add(message: Message) -> None:
     """Добавить пользовательский путь"""
     args = message.text.split(maxsplit=2)
     if len(args) < 3:
-        await message.answer("❌ Используйте: /path_user_add `имя` `путь`")
+        await message.answer(get_command_help_text("path_user_add"))
         return
 
     name = args[1]
@@ -135,7 +153,7 @@ async def handle_path_user_del(message: Message) -> None:
     """Удалить пользовательский путь"""
     args = message.text.split(maxsplit=1)
     if len(args) < 2:
-        await message.answer("❌ Укажите имя пути для удаления")
+        await message.answer(get_command_help_text("path_user_del"))
         return
 
     name = args[1]

@@ -1,14 +1,30 @@
-# SPDX-FileCopyrightText: 2025 ControlBot contributors
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# Telegram Control Bot
+# Copyright (C) 2025 Eklipti
+#
+# Этот проект — свободное программное обеспечение: вы можете
+# распространять и/или изменять его на условиях
+# Стандартной общественной лицензии GNU (GNU GPL)
+# третьей версии, опубликованной Фондом свободного ПО.
+#
+# Программа распространяется в надежде, что она будет полезной,
+# но БЕЗ КАКИХ-ЛИБО ГАРАНТИЙ; даже без подразумеваемой гарантии
+# ТОВАРНОГО СОСТОЯНИЯ или ПРИГОДНОСТИ ДЛЯ КОНКРЕТНОЙ ЦЕЛИ.
+# Подробности см. в Стандартной общественной лицензии GNU.
+#
+# Вы должны были получить копию Стандартной общественной
+# лицензии GNU вместе с этой программой. Если это не так,
+# см. <https://www.gnu.org/licenses/>.
 
 """
 Обработчики безопасности для подтверждений опасных действий
 """
 
 import asyncio
+import os
 
 from aiogram import F
-from aiogram.types import CallbackQuery
+from aiogram.types import BufferedInputFile, CallbackQuery
+from ..handlers.files import format_size
 
 from ..core.security import get_confirmation_manager
 from ..router import router
@@ -31,6 +47,8 @@ async def handle_confirmation_callback(callback: CallbackQuery) -> None:
             await _execute_file_delete(callback, result)
         elif action_type == "file_upload":
             await _execute_file_upload(callback, result)
+        elif action_type == "file_cut":
+            await _execute_file_cut(callback, result)
         elif action_type == "process_stop":
             await _execute_process_stop(callback, result)
         elif action_type == "process_stop_all":
@@ -215,3 +233,32 @@ async def _execute_folder_download(callback: CallbackQuery, result: dict) -> Non
     action_data.update({"bot": callback.bot, "chat_id": callback.from_user.id, "message": callback.message})
 
     await execute_folder_download(action_data)
+
+
+async def _execute_file_cut(callback: CallbackQuery, result: dict) -> None:
+    """Выполняет скачивание и удаление файла"""
+    file_path = result.get("file_path")
+    file_size = result.get("file_size", 0)
+
+    if not file_path:
+        await callback.bot.send_message(callback.from_user.id, "⚠️ Ошибка: путь к файлу не указан")
+        return
+
+    try:
+        if not os.path.exists(file_path) or not os.path.isfile(file_path):
+            await callback.bot.send_message(callback.from_user.id, f"⚠️ Файл уже не существует: {file_path}")
+            return
+        
+        with open(file_path, "rb") as f:
+            await callback.bot.send_document(
+                callback.from_user.id,
+                BufferedInputFile(f.read(), filename=os.path.basename(file_path)),
+                caption=f"✂️ Файл: {file_path}\n📊 Размер: {format_size(file_size)}"
+            )
+
+        os.remove(file_path)
+        
+        await callback.bot.send_message(callback.from_user.id, f"✅ Файл скачан и удален:\n{file_path}")
+
+    except Exception as e:
+        await callback.bot.send_message(callback.from_user.id, f"⚠️ Ошибка при операции 'Скачать и удалить': {e}")

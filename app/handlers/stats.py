@@ -1,5 +1,19 @@
-# SPDX-FileCopyrightText: 2025 ControlBot contributors
-# SPDX-License-Identifier: AGPL-3.0-or-later
+# Telegram Control Bot
+# Copyright (C) 2025 Eklipti
+#
+# Этот проект — свободное программное обеспечение: вы можете
+# распространять и/или изменять его на условиях
+# Стандартной общественной лицензии GNU (GNU GPL)
+# третьей версии, опубликованной Фондом свободного ПО.
+#
+# Программа распространяется в надежде, что она будет полезной,
+# но БЕЗ КАКИХ-ЛИБО ГАРАНТИЙ; даже без подразумеваемой гарантии
+# ТОВАРНОГО СОСТОЯНИЯ или ПРИГОДНОСТИ ДЛЯ КОНКРЕТНОЙ ЦЕЛИ.
+# Подробности см. в Стандартной общественной лицензии GNU.
+#
+# Вы должны были получить копию Стандартной общественной
+# лицензии GNU вместе с этой программой. Если это не так,
+# см. <https://www.gnu.org/licenses/>.
 
 """
 Обработчики команд для просмотра статистики и метрик.
@@ -41,23 +55,23 @@ async def handle_stats(message: Message) -> None:
         keyboard = InlineKeyboardMarkup(
             inline_keyboard=[
                 [
-                    InlineKeyboardButton("📊 Команды", callback_data="stats_commands"),
-                    InlineKeyboardButton("👥 Пользователи", callback_data="stats_users")
+                    InlineKeyboardButton("📊 Команды", callback_data="exec:/stats_commands"),
+                    InlineKeyboardButton("👥 Пользователи", callback_data="exec:/stats_users")
                 ],
                 [
-                    InlineKeyboardButton("⚡ Производительность", callback_data="stats_performance"),
-                    InlineKeyboardButton("📈 Паттерны", callback_data="stats_patterns")
+                    InlineKeyboardButton("⚡ Производительность", callback_data="exec:/stats_performance"),
+                    InlineKeyboardButton("📈 Паттерны", callback_data="exec:/stats_patterns")
                 ],
                 [
-                    InlineKeyboardButton("🔍 Аудит", callback_data="stats_audit"),
-                    InlineKeyboardButton("💾 Экспорт", callback_data="stats_export")
+                    InlineKeyboardButton("🔍 Аудит", callback_data="exec:/stats_audit"),
+                    InlineKeyboardButton("💾 Экспорт", callback_data="exec:/stats_export")
                 ]
             ]
         )
         
         # Формируем общую статистику
         stats_text = f"""
-📊 <b>Общая статистика ControlBot</b>
+📊 <b>Общая статистика TelegramControlBot</b>
 
 ⏱️ <b>Время работы:</b> {performance['uptime_human']}
 👥 <b>Активных пользователей:</b> {performance['total_users']}
@@ -366,8 +380,8 @@ async def handle_stats_export(message: Message) -> None:
             temp_file_path = f.name
         
         # Отправляем файл
-        file_input = FSInputFile(temp_file_path, filename=f"controlbot_stats_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json")
-        await message.answer_document(file_input, caption="📊 Экспорт статистики ControlBot")
+        file_input = FSInputFile(temp_file_path, filename=f"TelegramControlBot_stats_{datetime.now().strftime('%Y%m%d_%H%M%S')}.json")
+        await message.answer_document(file_input, caption="📊 Экспорт статистики TelegramControlBot")
         
         # Удаляем временный файл
         os.unlink(temp_file_path)
