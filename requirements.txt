@@ -1,14 +1,14 @@
 # Telegram framework
-aiogram==3.17.0
+aiogram==3.18.0
 
 # Imaging / screen / automation
-Pillow==10.4.0
+Pillow==11.1.0
 pyautogui==0.9.54
-opencv-python==4.10.0.84
-numpy==1.26.4
+opencv-python==4.11.0.86
+numpy==2.2.3
 
 # System monitoring
-psutil==6.0.0
+psutil==6.1.1
 
 # Configuration management
-python-dotenv==1.0.0
+python-dotenv==1.0.1
