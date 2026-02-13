@@ -1,6 +1,4 @@
 @echo off
-REM SPDX-FileCopyrightText: 2025 TelegramControlBot contributors
-REM SPDX-License-Identifier: AGPL-3.0-or-later
 
 chcp 65001 >nul
 title TelegramControlBot

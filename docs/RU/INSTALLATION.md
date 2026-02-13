@@ -13,11 +13,12 @@
 ## Предварительные требования
 
 ### Обязательные
-- **Windows 10/11** или более поздняя версия
-- **Python 3.11+** - [Скачать](https://www.python.org/downloads/)
-- **Git** (для клонирования) - [Скачать](https://git-scm.com/downloads)
-- **Токен Telegram-бота** - получите от [@BotFather](https://t.me/BotFather)
-- **Telegram User ID** - получите от [@userinfobot](https://t.me/userinfobot)
+- **Windows 10/11**
+- **Python 3.11+** — [Скачать](https://www.python.org/downloads/)
+- **Git** (для клонирования) — [Скачать](https://git-scm.com/downloads)
+- **Токен Telegram-бота** — получите от [@BotFather](https://t.me/BotFather)
+- **Telegram User ID** — получите от [@userinfobot](https://t.me/userinfobot)
+- **API ID и API Hash** приложения — получите на [my.telegram.org](https://my.telegram.org) (опционально)
 
 ### Проверка Python
 
@@ -49,23 +50,29 @@ setup.bat
 ```
 
 **Что делает скрипт:**
-1. ✅ Проверяет наличие и версию Python
-2. ✅ Создает виртуальное окружение `.venv`
-3. ✅ Активирует виртуальное окружение
-4. ✅ Обновляет pip до последней версии
-5. ✅ Устанавливает все зависимости из `requirements.txt`
-6. ✅ Создает `.env` файл из `.env.example`
-7. ✅ Создает необходимые директории (logs, data, exports)
+1. Проверяет наличие и версию Python
+2. Создает виртуальное окружение `.venv`
+3. Активирует виртуальное окружение
+4. Обновляет pip до последней версии
+5. Устанавливает все зависимости из `requirements.txt`
+6. Создает `.env` файл из `.env.example`
+7. Создает необходимые директории
 
-* **Примечание**: путь не должен содержать спец. символов и желательно пробелов. Если таковые имеются, рекомендуется запускать через PowerShell.
+* **Примечание**: путь не должен содержать спец. символов, кириллицы и желательно пробелов. Если таковые имеются, рекомендуется запускать через PowerShell.
 
 ### Шаг 3: Настройка .env файла
 
 Откройте файл `.env` в текстовом редакторе (Блокнот, Notepad++, VS Code):
 
 ```env
-# Токен вашего Telegram-бота (получите от @BotFather)
-TELEGRAM_BOT_TOKEN=1234567890:ABCdefGHIjklMNOpqrsTUVwxyz
+# Telegram Bot Token
+TELEGRAM_BOT_TOKEN=your_bot_token_here
+
+# Telegram API ID
+TELEGRAM_API_ID=your_api_id_here
+
+# Telegram API Hash
+TELEGRAM_API_HASH=your_api_hash_here
 
 # ID разрешенных пользователей через запятую (получите от @Getmyid_bot)
 ALLOWED_USER_IDS=123456789,987654321
