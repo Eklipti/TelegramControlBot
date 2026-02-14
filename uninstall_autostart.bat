@@ -10,7 +10,7 @@ set "STARTUP_FOLDER=%APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup"
 set "SHORTCUT_PATH=%STARTUP_FOLDER%\TelegramControlBot.lnk"
 
 if not exist "%SHORTCUT_PATH%" (
-    echo [INFO] Ярлык в автозагрузке не найден.
+    echo Ярлык в автозагрузке не найден.
     echo Бот не установлен в автозагрузку.
     echo.
     pause

@@ -14,10 +14,10 @@
 
 ### Обязательные
 - **Windows 10/11**
-- **Python 3.11+** — [Скачать](https://www.python.org/downloads/)
+- **Python 3.13+** — [Скачать](https://www.python.org/downloads/release/python-31312/)
 - **Git** (для клонирования) — [Скачать](https://git-scm.com/downloads)
 - **Токен Telegram-бота** — получите от [@BotFather](https://t.me/BotFather)
-- **Telegram User ID** — получите от [@userinfobot](https://t.me/userinfobot)
+- **Telegram User ID** — получите от [@Getmyid_bot](https://t.me/userinfobot)
 - **API ID и API Hash** приложения — получите на [my.telegram.org](https://my.telegram.org) (опционально)
 
 ### Проверка Python
@@ -28,7 +28,7 @@
 python --version
 ```
 
-Должна отобразиться версия Python 3.11 или выше.
+Должна отобразиться версия Python 3.13 или выше.
 
 ## Автоматическая установка (рекомендуется)
 
@@ -243,7 +243,7 @@ python main.py
 **Проблема:** При запуске `setup.bat` выводится "Python не найден"
 
 **Решение:**
-1. Установите Python 3.11+ с официального сайта
+1. Установите Python 3.13+ с официального сайта
 2. При установке обязательно отметьте "Add Python to PATH"
 3. Перезапустите командную строку
 4. Проверьте: `python --version`

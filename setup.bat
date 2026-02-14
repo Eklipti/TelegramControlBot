@@ -2,7 +2,7 @@
 
 chcp 65001 >nul
 echo ============================================
-echo   TelegramControlBot - Первоначальная настройка
+echo TelegramControlBot - Первоначальная настройка
 echo ============================================
 echo.
 
@@ -14,8 +14,8 @@ python --version >nul 2>&1
 if errorlevel 1 (
     echo [ERROR] Python не найден!
     echo.
-    echo Пожалуйста, установите Python 3.11 или выше:
-    echo https://www.python.org/downloads/
+    echo Пожалуйста, установите Python 3.13 или выше:
+    echo https://www.python.org/downloads/release/python-31312/
     echo.
     echo Убедитесь, что отметили "Add Python to PATH" при установке.
     pause
@@ -27,7 +27,7 @@ echo.
 echo [2/6] Проверка версии Python...
 python -c "import sys; exit(0 if sys.version_info >= (3, 11) else 1)" >nul 2>&1
 if errorlevel 1 (
-    echo [WARNING] Требуется Python 3.11 или выше!
+    echo [WARNING] Требуется Python 3.13 или выше!
     echo Текущая версия может не поддерживаться.
     echo.
 )
@@ -43,7 +43,7 @@ if exist ".venv" (
         pause
         exit /b 1
     )
-    echo Виртуальное окружение создано успешно.
+    echo [OK] Виртуальное окружение создано успешно.
 )
 echo.
 
@@ -54,7 +54,7 @@ if errorlevel 1 (
     pause
     exit /b 1
 )
-echo Виртуальное окружение активировано.
+echo [OK] Виртуальное окружение активировано.
 echo.
 
 echo [5/6] Установка зависимостей...
@@ -66,7 +66,7 @@ if errorlevel 1 (
     pause
     exit /b 1
 )
-echo Зависимости установлены успешно.
+echo [OK] Зависимости установлены успешно.
 echo.
 
 echo [6/6] Настройка конфигурации...
@@ -75,11 +75,11 @@ if exist ".env" (
 ) else (
     if exist ".env.example" (
         copy .env.example .env >nul
-        echo Создан файл .env из .env.example
+        echo [OK] Создан файл .env из .env.example
         echo.
         echo [ВАЖНО] Отредактируйте файл .env и укажите:
         echo   - TELEGRAM_BOT_TOKEN (получите от @BotFather)
-        echo   - ALLOWED_USER_IDS (получите от @userinfobot)
+        echo   - ALLOWED_USER_IDS (получите от @Getmyid_bot)
         echo.
     ) else (
         echo [WARNING] Файл .env.example не найден!
@@ -91,11 +91,6 @@ echo.
 echo ============================================
 echo   Настройка завершена успешно!
 echo ============================================
-echo.
-echo Следующие шаги:
-echo   1. Отредактируйте файл .env (укажите токен бота и ID пользователей)
-echo   2. Запустите start.bat для запуска бота
-echo   3. (Опционально) Запустите install_autostart.bat для добавления в автозагрузку
 echo.
 pause
 

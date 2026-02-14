@@ -1,50 +1,5 @@
 # Byte-compiled / optimized / DLL files
 __pycache__/
-*.py[cod]
-*$py.class
-
-# Distribution / packaging
-.Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
-wheels/
-*.egg-info/
-.installed.cfg
-*.egg
-MANIFEST
-
-# PyInstaller
-*.manifest
-*.spec
-
-# Installer logs
-pip-log.txt
-pip-delete-this-directory.txt
-
-# Unit test / coverage reports
-htmlcov/
-.tox/
-.nox/
-.coverage
-.coverage.*
-.cache
-nosetests.xml
-coverage.xml
-*.cover
-.hypothesis/
-.pytest_cache/
-
-# pyenv
-.python-version
 
 # Environments
 .env
@@ -55,59 +10,19 @@ ENV/
 env.bak/
 venv.bak/
 
-# VS Code
-.vscode/
-.history/
-
-# JetBrains IDEs
-.idea/
-
-# Sublime Text
-*.sublime-project
-*.sublime-workspace
-
 # Cursor
 .cursor/
 
-# Project specific
 # TelegramControlBot specific files
 
 # Logs and runtime data
 logs/
 *.log
 *.log.*
-test_logs/
 
 # Temporary files and directories
 temp/
 tmp/
-screenshots/
-downloads/
-uploads/
 cmd_output*.txt
 jsons/
 exports/
-
-# Configuration files (keep examples, ignore user configs)
-# User-specific paths and data
-jsons/
-exports/
-.env
-.env.local
-.env.prod
-.env.dev
-
-# Cache and compiled files
-__pycache__/
-*.pyc
-*.pyo
-*.py[cod]
-*$py.class
-
-# Telegram bot data
-session_files/
-bot_sessions/
-monitoring_data/
-
-# old docs -- не знаю, зачем их храню
-./docs/CHANGELOG.*

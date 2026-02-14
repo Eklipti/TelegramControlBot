@@ -7,7 +7,7 @@ set "SCRIPT_DIR=%~dp0"
 cd /d "%SCRIPT_DIR%"
 
 if not exist ".venv" (
-    echo [INFO] Виртуальное окружение не найдено.
+    echo [WARNING] Виртуальное окружение не найдено.
     echo.
     echo Запуск setup.bat для создания окружения...
     call setup.bat
@@ -16,7 +16,7 @@ if not exist ".venv" (
         pause
         exit /b 1
     )
-    echo [OK] Виртуальное окружение создано.
+    echo [OK] Виртуальное окружение создано успешно.
     pause
     exit /b 1
 )
