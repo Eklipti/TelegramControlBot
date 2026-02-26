@@ -46,10 +46,9 @@ class PathsConfig:
 
     def load_default_paths(self) -> None:
         """Загружает системные пути из DEFAULT_PATHS.json и системного PATH"""
-        # Всегда генерируем пути из PATH заново для актуальности
+
+        # Генерируем пути из PATH всегда для актуальности
         self.default_paths = {}
-        
-        # Загружаем системные пути из PATH
         self._load_system_paths()
 
     def _load_system_paths(self) -> None:
@@ -58,10 +57,7 @@ class PathsConfig:
         if not system_path:
             return
 
-        # Разрешенные расширения исполняемых файлов для Windows
         executable_extensions = {".exe", ".bat", ".cmd", ".com", ".vbs", ".ps1", ".msc"}
-        
-        # Парсим PATH и находим исполняемые файлы
         path_dirs = [p.strip() for p in system_path.split(os.pathsep) if p.strip()]
         
         for path_dir in path_dirs:
@@ -73,26 +69,18 @@ class PathsConfig:
                     item_path = os.path.join(path_dir, item)
                     if not os.path.isfile(item_path):
                         continue
-                    
-                    # Получаем расширение файла
+
                     _, ext = os.path.splitext(item)
-                    
-                    # Фильтруем только исполняемые файлы
-                    if os.name == "nt":  # Windows
+                    if os.name == "nt":
                         if ext.lower() not in executable_extensions:
                             continue
-                    else:  # Linux/Mac
-                        if not os.access(item_path, os.X_OK):
-                            continue
-                    
-                    # Получаем имя файла без расширения
+
                     name = os.path.splitext(item)[0]
                     if name and name not in self.default_paths:
                         self.default_paths[name] = os.path.abspath(item_path)
             except (OSError, PermissionError):
                 continue
 
-        # Сохраняем обновленные системные пути
         self.save_default_paths()
 
     def load_all_user_paths(self) -> None:
