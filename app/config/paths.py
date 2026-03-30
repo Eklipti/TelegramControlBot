@@ -200,11 +200,10 @@ class PathsConfig:
                 "default_paths": len(self.default_paths),
                 "total_paths": len(self.get_all_paths(user_id)),
             }
-        else:
-            return {
-                "default_paths": len(self.default_paths),
-                "total_users": len(self.user_paths),
-            }
+        return {
+            "default_paths": len(self.default_paths),
+            "total_users": len(self.user_paths),
+        }
 
 
 # Глобальный экземпляр конфигурации путей

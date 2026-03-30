@@ -25,7 +25,7 @@ def main() -> None:
     (project_root / "exports").mkdir(parents=True, exist_ok=True)
     (project_root / "jsons").mkdir(parents=True, exist_ok=True)
 
-    from app.core.logging import init_logging, info, critical
+    from app.core.logging import critical, info, init_logging
     init_logging(
         logs_dir=str(project_root / "logs"),
         log_level=settings.log_level,

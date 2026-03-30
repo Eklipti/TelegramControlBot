@@ -15,11 +15,9 @@
 # лицензии GNU вместе с этой программой. Если это не так,
 # см. <https://www.gnu.org/licenses/>.
 
-import tempfile
-import os
 
 from aiogram.filters import Command
-from aiogram.types import Message, BufferedInputFile
+from aiogram.types import BufferedInputFile, Message
 
 from ..config.paths import get_paths_config
 from ..core.logging import error, info

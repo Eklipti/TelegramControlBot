@@ -20,7 +20,7 @@ import os
 
 from aiogram import Bot
 
-from ..core.logging import debug, error, info, warning
+from ..core.logging import info
 
 
 class FileMonitor:
@@ -126,19 +126,19 @@ class FileMonitor:
                             if created:
                                 message_parts.append(
                                     "📁 ➕ <b>Созданы:</b>\n" + "\n".join(f"• {p}" for p in created[:10])
-                                )  # noqa: E501
+                                )
                                 if len(created) > 10:
                                     message_parts.append(f"... и еще {len(created) - 10} файлов")
                             if changed:
                                 message_parts.append(
                                     "📁 ✏️ <b>Изменены:</b>\n" + "\n".join(f"• {p}" for p in changed[:10])
-                                )  # noqa: E501
+                                )
                                 if len(changed) > 10:
                                     message_parts.append(f"... и еще {len(changed) - 10} файлов")
                             if deleted:
                                 message_parts.append(
                                     "📁 ➖ <b>Удалены:</b>\n" + "\n".join(f"• {p}" for p in deleted[:10])
-                                )  # noqa: E501
+                                )
                                 if len(deleted) > 10:
                                     message_parts.append(f"... и еще {len(deleted) - 10} файлов")
 

@@ -19,10 +19,11 @@
 Middleware для логирования всех взаимодействий с ботом.
 """
 
-from typing import Any, Awaitable, Callable, Dict
+from collections.abc import Awaitable, Callable
+from typing import Any
 
 from aiogram import BaseMiddleware
-from aiogram.types import CallbackQuery, Message, TelegramObject, Update
+from aiogram.types import CallbackQuery, Message, TelegramObject
 
 from ..core.logging import debug, info, trace, trace_function_entry, trace_function_exit
 
@@ -32,9 +33,9 @@ class BotInteractionLoggingMiddleware(BaseMiddleware):
 
     async def __call__(
         self,
-        handler: Callable[[TelegramObject, Dict[str, Any]], Awaitable[Any]],
+        handler: Callable[[TelegramObject, dict[str, Any]], Awaitable[Any]],
         event: TelegramObject,
-        data: Dict[str, Any],
+        data: dict[str, Any],
     ) -> Any:
         """
         Обрабатывает входящие события и логирует их.
@@ -72,7 +73,7 @@ class BotInteractionLoggingMiddleware(BaseMiddleware):
                               logger_name="middleware")
             raise
 
-    async def _log_incoming_event(self, event: TelegramObject, data: Dict[str, Any]) -> None:
+    async def _log_incoming_event(self, event: TelegramObject, data: dict[str, Any]) -> None:
         """Логирует входящее событие."""
         if isinstance(event, Message):
             await self._log_message(event, data)
@@ -83,7 +84,7 @@ class BotInteractionLoggingMiddleware(BaseMiddleware):
             info(f"Получено событие: {type(event).__name__}", "bot_interaction")
             trace(f"Детали события {type(event).__name__}: {event}", "bot_interaction")
 
-    async def _log_message(self, message: Message, data: Dict[str, Any]) -> None:
+    async def _log_message(self, message: Message, data: dict[str, Any]) -> None:
         """Логирует входящее сообщение."""
         user = message.from_user
         chat = message.chat
@@ -130,7 +131,7 @@ class BotInteractionLoggingMiddleware(BaseMiddleware):
         if message.video:
             trace(f"Видео: {message.video.file_name} ({message.video.file_size} байт)", "bot_interaction")
 
-    async def _log_callback_query(self, callback: CallbackQuery, data: Dict[str, Any]) -> None:
+    async def _log_callback_query(self, callback: CallbackQuery, data: dict[str, Any]) -> None:
         """Логирует callback запрос."""
         user = callback.from_user
         message = callback.message

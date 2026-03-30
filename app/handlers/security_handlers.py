@@ -24,9 +24,9 @@ import os
 
 from aiogram import F
 from aiogram.types import BufferedInputFile, CallbackQuery
-from ..handlers.files import format_size
 
 from ..core.security import get_confirmation_manager
+from ..handlers.files import format_size
 from ..router import router
 
 
@@ -181,7 +181,7 @@ async def _execute_process_stop_all(callback: CallbackQuery, result: dict) -> No
 
         response = "⛔ <b>Остановлены процессы:</b>\n" + (
             "\n".join(f"• {name}" for name in stopped) if stopped else "ℹ️ Нет процессов для остановки"
-        )  # noqa: E501
+        )
         if failed:
             response += "\n\n❌ <b>Ошибки:</b>\n" + "\n".join(failed)
 
@@ -192,7 +192,7 @@ async def _execute_process_stop_all(callback: CallbackQuery, result: dict) -> No
 
 async def _execute_rdp_start(callback: CallbackQuery, result: dict) -> None:
     """Выполняет запуск RDP сессии"""
-    from ..core.logging import error, info, warning
+    from ..core.logging import error, info
     
     try:
         fps = result.get("fps", 1)
@@ -220,7 +220,7 @@ async def _execute_rdp_start(callback: CallbackQuery, result: dict) -> None:
     except Exception as e:
         error(f"Ошибка при запуске RDP сессии: {e}", "security")
         await callback.bot.send_message(
-            callback.from_user.id, f"❌ Ошибка при запуске RDP сессии: {str(e)}"
+            callback.from_user.id, f"❌ Ошибка при запуске RDP сессии: {e!s}"
         )
 
 

@@ -15,13 +15,11 @@
 # лицензии GNU вместе с этой программой. Если это не так,
 # см. <https://www.gnu.org/licenses/>.
 
-import asyncio
 import ctypes
 import logging
 import os
 import shlex
 import subprocess
-import sys
 import uuid
 
 from aiogram import F
@@ -29,10 +27,10 @@ from aiogram.filters import Command
 from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message
 
 from ..config.paths import get_paths_config
-from ..core.logging import error, info, warning
+from ..core.logging import error, info
+from ..help_texts import get_command_help_text
 from ..router import router
 from ..state import path_save_requests
-from ..help_texts import get_command_help_text
 
 active_processes: dict[str, subprocess.Popen] = {}
 
@@ -422,6 +420,6 @@ async def handle_processes(message: Message) -> None:
         action_data={"action_type": "process_stop", "action_data": {"target": target}, "target": target},
         warning_message=action_config["warning"].format(
             action_data=f"Остановка процесса: {matched_name} (PID: {matched_proc.pid})"
-        ),  # noqa: E501
+        ),
         timeout=action_config["timeout"],
     )

@@ -158,8 +158,7 @@ async def handle_cmd_session_stop(message: Message) -> None:
                     pass
             session["active"] = False
             # Очищаем настройки интервала для этого чата
-            if chat_id in update_intervals:
-                del update_intervals[chat_id]
+            update_intervals.pop(chat_id, None)
             await message.answer("⛔ Cmd сессия завершена")
         else:
             await message.answer("ℹ️ Нет активной cmd сессии")

@@ -19,13 +19,12 @@
 Обработчики команд для экспорта логов в разные форматы.
 """
 
-import asyncio
 from datetime import datetime, timedelta
 
 from aiogram.filters import Command
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message
 
-from ..core.logging import debug, error, info, trace, trace_function_entry, trace_function_exit
+from ..core.logging import error, info, trace_function_entry, trace_function_exit
 from ..core.metrics_decorator import track_command_metrics
 from ..help_texts import get_command_help_text
 from ..router import router
@@ -82,7 +81,7 @@ async def handle_logs_export(message: Message) -> None:
         for level, count in log_stats.get('logs_by_level', {}).items():
             stats_text += f"• {level}: {count}\n"
         
-        stats_text += f"\n📝 <b>По логгерам:</b>\n"
+        stats_text += "\n📝 <b>По логгерам:</b>\n"
         for logger_name, count in list(log_stats.get('logs_by_logger', {}).items())[:5]:
             stats_text += f"• {logger_name}: {count}\n"
         

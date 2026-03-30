@@ -19,7 +19,7 @@ from aiogram.filters import Command
 from aiogram.types import Message
 
 from ..core.logging import info
-from ..help_texts import COMMAND_HELP, COMMAND_CATEGORIES
+from ..help_texts import COMMAND_CATEGORIES, COMMAND_HELP
 from ..router import router
 from .menu import create_main_menu_keyboard
 

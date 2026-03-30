@@ -20,12 +20,12 @@
 """
 
 import json
-from datetime import datetime, timedelta
+from datetime import datetime
 
 from aiogram.filters import Command
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, Message
 
-from ..core.logging import debug, error, info, trace, trace_function_entry, trace_function_exit
+from ..core.logging import error, info, trace_function_entry, trace_function_exit
 from ..core.metrics_decorator import track_command_metrics
 from ..router import router
 from ..services.metrics import get_metrics_collector
@@ -330,7 +330,7 @@ async def handle_stats_audit(message: Message) -> None:
                 status = "✅" if trail['success'] else "❌"
                 stats_text += f"• Статус: {status}\n"
             
-            if 'error_msg' in trail and trail['error_msg']:
+            if trail.get('error_msg'):
                 stats_text += f"• Ошибка: {trail['error_msg'][:100]}...\n"
             
             stats_text += "\n"
@@ -371,8 +371,9 @@ async def handle_stats_export(message: Message) -> None:
         }
         
         # Создаем временный файл
-        import tempfile
         import os
+        import tempfile
+
         from aiogram.types import FSInputFile
         
         with tempfile.NamedTemporaryFile(mode='w', encoding='utf-8', delete=False, suffix='.json') as f:

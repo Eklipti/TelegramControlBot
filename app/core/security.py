@@ -28,7 +28,7 @@ from aiogram.enums import ChatType
 from aiogram.filters import BaseFilter
 from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message
 
-from .logging import debug, error, info, warning, trace, trace_function_entry, trace_function_exit
+from .logging import debug, error, info, trace, trace_function_entry, trace_function_exit, warning
 
 # Хранилище ожидающих подтверждений
 pending_confirmations: dict[str, dict[str, Any]] = {}
@@ -58,7 +58,7 @@ class PrivateChatFilter(BaseFilter):
                 trace_function_exit("PrivateChatFilter.__call__", result="private_chat_allowed", logger_name="security")
             return is_private
         # Для callback-запросов
-        elif isinstance(obj, CallbackQuery):
+        if isinstance(obj, CallbackQuery):
             is_private = obj.message and obj.message.chat.type == ChatType.PRIVATE
             user_id = obj.from_user.id if obj.from_user else None
             username = obj.from_user.username if obj.from_user else None
@@ -193,17 +193,17 @@ class ConfirmationManager:
             except Exception:
                 pass
             return action_data
-        else:  # cancel
-            await callback.answer("❌ Действие отменено")
-            try:
-                await self.bot.edit_message_text(
-                    chat_id=confirmation["chat_id"],
-                    message_id=confirmation["message_id"],
-                    text="❌ <b>Действие отменено</b>",
-                )
-            except Exception:
-                pass
-            return None
+        # cancel
+        await callback.answer("❌ Действие отменено")
+        try:
+            await self.bot.edit_message_text(
+                chat_id=confirmation["chat_id"],
+                message_id=confirmation["message_id"],
+                text="❌ <b>Действие отменено</b>",
+            )
+        except Exception:
+            pass
+        return None
 
 
 # Определения опасных действий

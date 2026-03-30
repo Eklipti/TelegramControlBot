@@ -27,7 +27,6 @@ from ..core.security import DANGEROUS_ACTIONS, get_confirmation_manager
 from ..help_texts import get_command_help_text
 from ..router import router
 
-
 # Черный список системных директорий
 SYSTEM_DIRECTORIES_BLACKLIST = {
     # Windows системные директории
@@ -256,8 +255,8 @@ async def handle_cut_command(message: Message) -> None:
 
     if is_path_blacklisted(file_path):
         await message.answer(
-            f"🚫 <b>Доступ запрещен!</b>\n\n"
-            f"Путь находится в системной директории и недоступен для скачивания/удаления."
+            "🚫 <b>Доступ запрещен!</b>\n\n"
+            "Путь находится в системной директории и недоступен для скачивания/удаления."
         )
         return
 
@@ -298,7 +297,7 @@ async def execute_folder_download(action_data: dict) -> None:
 
     try:
         # Создаем временный архив
-        msg = await action_data.get("message", None)
+        msg = await action_data.get("message")
         if msg:
             await msg.edit_text("📦 Архивация папки...")
 

@@ -22,10 +22,9 @@
 from aiogram import F
 from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup, Message
 
-from ..core.logging import info, warning, error
+from ..core.logging import error, info, warning
 from ..help_texts import COMMAND_CATEGORIES, COMMAND_HELP
 from ..router import router
-
 
 # Структура страниц меню
 MENU_PAGES = {
@@ -214,24 +213,41 @@ async def handle_command_execution(callback: CallbackQuery) -> None:
 
         # Импортируем обработчики локально во избежание циклических импортов
         try:
-            from app.handlers.system import handle_reload, handle_tasklist
-            from app.handlers.processes import handle_processes
-            from app.handlers.paths_handlers import handle_path_global_list, handle_path_user_list, handle_paths_show_all, handle_paths_reload
-            from app.handlers.monitor import handle_monitor_list, handle_monitor_stop
-            from app.handlers.cmd import handle_cmd_update, handle_cmd_dump, handle_cmd_session_start, handle_cmd_session_stop
-            from app.handlers.remote_desktop import handle_rdp_start, handle_rdp_stop
-            from app.handlers.screen import handle_screen, handle_screen_find
-            from app.handlers.mouse_keyboard import handle_screen_mark
-            from app.handlers.stats import (
-                handle_stats, handle_stats_commands, handle_stats_users,
-                handle_stats_performance, handle_stats_patterns,
-                handle_stats_audit, handle_stats_export
+            from app.handlers.cancel import handle_cancel
+            from app.handlers.cmd import (
+                handle_cmd_dump,
+                handle_cmd_session_start,
+                handle_cmd_session_stop,
+                handle_cmd_update,
             )
             from app.handlers.logs_export import (
-                handle_logs_export, handle_logs_export_json, handle_logs_export_csv,
-                handle_logs_export_xml, handle_logs_export_txt
+                handle_logs_export,
+                handle_logs_export_csv,
+                handle_logs_export_json,
+                handle_logs_export_txt,
+                handle_logs_export_xml,
             )
-            from app.handlers.cancel import handle_cancel
+            from app.handlers.monitor import handle_monitor_list, handle_monitor_stop
+            from app.handlers.mouse_keyboard import handle_screen_mark
+            from app.handlers.paths_handlers import (
+                handle_path_global_list,
+                handle_path_user_list,
+                handle_paths_reload,
+                handle_paths_show_all,
+            )
+            from app.handlers.processes import handle_processes
+            from app.handlers.remote_desktop import handle_rdp_start, handle_rdp_stop
+            from app.handlers.screen import handle_screen, handle_screen_find
+            from app.handlers.stats import (
+                handle_stats,
+                handle_stats_audit,
+                handle_stats_commands,
+                handle_stats_export,
+                handle_stats_patterns,
+                handle_stats_performance,
+                handle_stats_users,
+            )
+            from app.handlers.system import handle_reload, handle_tasklist
 
             # Маппинг команд на их обработчики (только для команд без обязательных аргументов)
             pure_handlers = {

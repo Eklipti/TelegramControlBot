@@ -20,7 +20,7 @@ import os
 from aiogram.filters import Command
 from aiogram.types import Message
 
-from ..core.logging import debug, error, info, warning
+from ..core.logging import error, info, warning
 from ..help_texts import get_command_help_text
 from ..router import router
 from ..services.monitor import FileMonitor

@@ -26,7 +26,7 @@ import logging
 import xml.etree.ElementTree as ET
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 # Удален импорт для избежания циклической зависимости
 
@@ -40,7 +40,7 @@ class CentralizedLogger:
         self.export_dir.mkdir(exist_ok=True)
         
         # Централизованное хранилище логов
-        self.centralized_logs: List[Dict[str, Any]] = []
+        self.centralized_logs: list[dict[str, Any]] = []
         self.max_logs_in_memory = 10000  # Максимум логов в памяти
         
         # Статистика логирования
@@ -61,7 +61,7 @@ class CentralizedLogger:
         level: str, 
         message: str, 
         logger_name: str = "main",
-        extra_data: Optional[Dict[str, Any]] = None
+        extra_data: dict[str, Any] | None = None
     ) -> None:
         """Добавляет лог в централизованное хранилище."""
         log_entry = {
@@ -91,12 +91,12 @@ class CentralizedLogger:
     
     def get_logs(
         self, 
-        level: Optional[str] = None,
-        logger_name: Optional[str] = None,
-        start_time: Optional[datetime] = None,
-        end_time: Optional[datetime] = None,
+        level: str | None = None,
+        logger_name: str | None = None,
+        start_time: datetime | None = None,
+        end_time: datetime | None = None,
         limit: int = 1000
-    ) -> List[Dict[str, Any]]:
+    ) -> list[dict[str, Any]]:
         """Получает логи с фильтрацией."""
         filtered_logs = self.centralized_logs.copy()
         
@@ -120,7 +120,7 @@ class CentralizedLogger:
         
         return result
     
-    def get_log_statistics(self) -> Dict[str, Any]:
+    def get_log_statistics(self) -> dict[str, Any]:
         """Возвращает статистику логирования."""
         stats = self.log_stats.copy()
         
@@ -133,7 +133,7 @@ class CentralizedLogger:
         
         return stats
     
-    async def export_to_json(self, filename: Optional[str] = None) -> str:
+    async def export_to_json(self, filename: str | None = None) -> str:
         """Экспортирует логи в JSON формат."""
         try:
             if not filename:
@@ -165,7 +165,7 @@ class CentralizedLogger:
             self._logger.error(f"Ошибка экспорта в JSON: {e}")
             raise
     
-    async def export_to_csv(self, filename: Optional[str] = None) -> str:
+    async def export_to_csv(self, filename: str | None = None) -> str:
         """Экспортирует логи в CSV формат."""
         try:
             if not filename:
@@ -201,7 +201,7 @@ class CentralizedLogger:
             self._logger.error(f"Ошибка экспорта в CSV: {e}")
             raise
     
-    async def export_to_xml(self, filename: Optional[str] = None) -> str:
+    async def export_to_xml(self, filename: str | None = None) -> str:
         """Экспортирует логи в XML формат."""
         try:
             if not filename:
@@ -249,7 +249,7 @@ class CentralizedLogger:
             self._logger.error(f"Ошибка экспорта в XML: {e}")
             raise
     
-    async def export_to_text(self, filename: Optional[str] = None) -> str:
+    async def export_to_text(self, filename: str | None = None) -> str:
         """Экспортирует логи в текстовый формат."""
         try:
             if not filename:
@@ -260,7 +260,7 @@ class CentralizedLogger:
             # Выносим блокирующую операцию записи в отдельный поток
             def _write_text():
                 with open(export_path, 'w', encoding='utf-8') as f:
-                    f.write(f"TelegramControlBot Logs Export\n")
+                    f.write("TelegramControlBot Logs Export\n")
                     f.write(f"Generated: {datetime.now().isoformat()}\n")
                     f.write(f"Total logs: {len(self.centralized_logs)}\n")
                     f.write("=" * 50 + "\n\n")
@@ -303,7 +303,7 @@ class CentralizedLogger:
 
 
 # Глобальный экземпляр централизованного логгера
-centralized_logger: Optional[CentralizedLogger] = None
+centralized_logger: CentralizedLogger | None = None
 
 
 def init_centralized_logging(logs_dir: str = "./logs", export_dir: str = "./exports") -> CentralizedLogger:

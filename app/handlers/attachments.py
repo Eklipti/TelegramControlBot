@@ -22,11 +22,11 @@ import tempfile
 import cv2
 import pyautogui
 from aiogram import F
-from aiogram.types import BufferedInputFile, Message
+from aiogram.types import Message
 
 from ..core.logging import debug, error, info, warning
 from ..router import router
-from ..state import download_requests, mouse_positions, screen_find_requests, upload_requests
+from ..state import mouse_positions, screen_find_requests, upload_requests
 
 
 @router.message(F.document | F.photo)

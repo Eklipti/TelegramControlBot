@@ -20,8 +20,6 @@ from aiogram.filters import Command
 from aiogram.types import BufferedInputFile, Message
 
 from ..router import router
-from ..config import reload_settings
-from ..core.logging import info, error
 
 
 @router.message(Command("reload"))

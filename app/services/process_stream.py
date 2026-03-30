@@ -22,12 +22,12 @@ from __future__ import annotations
 
 import asyncio
 import html
-from typing import Optional, Callable
+from collections.abc import Callable
 
 from aiogram import Bot
 
 from ..config import get_settings
-from ..core.logging import debug, error, info, log_call
+from ..core.logging import debug, log_call
 
 
 @log_call("cmd_stream")
@@ -37,11 +37,11 @@ async def stream_process_to_message(
     message_id: int,
     proc: asyncio.subprocess.Process,
     bot: Bot,
-    force_refresh_event: Optional[asyncio.Event] = None,
+    force_refresh_event: asyncio.Event | None = None,
     max_tail_lines: int = 50,
     final_tail_lines: int = 100,
-    status_line: Optional[Callable[[int, int], str]] = None,
-    session_storage: Optional[dict] = None,
+    status_line: Callable[[int, int], str] | None = None,
+    session_storage: dict | None = None,
 ) -> None:
     """
     Читает вывод процесса и периодически обновляет сообщение.

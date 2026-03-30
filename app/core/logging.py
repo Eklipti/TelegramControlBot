@@ -10,9 +10,9 @@
 - TRACE: подробный уровень, записывающий всю информацию о выполнении, включая детали о вызовах методов и потоках
 """
 
-import logging
 import asyncio
 import functools
+import logging
 from pathlib import Path
 
 from .centralized_handler import CentralizedLoggingHandler
@@ -249,13 +249,12 @@ def log_call(logger_name: str = "main"):
                 finally:
                     trace_function_exit(qualname, logger_name=logger_name)
             return async_wrapper
-        else:
-            @functools.wraps(func)
-            def wrapper(*args, **kwargs):
-                trace_function_entry(qualname, args=args, kwargs=kwargs, logger_name=logger_name)
-                try:
-                    return func(*args, **kwargs)
-                finally:
-                    trace_function_exit(qualname, logger_name=logger_name)
-            return wrapper
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            trace_function_entry(qualname, args=args, kwargs=kwargs, logger_name=logger_name)
+            try:
+                return func(*args, **kwargs)
+            finally:
+                trace_function_exit(qualname, logger_name=logger_name)
+        return wrapper
     return decorator

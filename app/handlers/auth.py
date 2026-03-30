@@ -18,7 +18,7 @@
 from aiogram.filters import BaseFilter
 from aiogram.types import CallbackQuery, Message
 
-from ..core.logging import debug, warning, info, trace, trace_function_entry, trace_function_exit
+from ..core.logging import debug, info, trace, trace_function_entry, trace_function_exit, warning
 
 
 class AllowedUserFilter(BaseFilter):

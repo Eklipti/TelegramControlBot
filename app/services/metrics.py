@@ -19,13 +19,12 @@
 Система сбора метрик и статистики для TelegramControlBot.
 """
 
-import asyncio
 import json
 import time
 from collections import defaultdict, deque
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any
 
 from ..core.logging import debug, error, info, log_call
 
@@ -38,7 +37,7 @@ class MetricsCollector:
         self.data_dir.mkdir(exist_ok=True)
         
         # Метрики команд
-        self.command_stats: Dict[str, Dict[str, Any]] = defaultdict(lambda: {
+        self.command_stats: dict[str, dict[str, Any]] = defaultdict(lambda: {
             "count": 0,
             "total_time": 0.0,
             "avg_time": 0.0,
@@ -50,7 +49,7 @@ class MetricsCollector:
         })
         
         # Метрики пользователей
-        self.user_stats: Dict[int, Dict[str, Any]] = defaultdict(lambda: {
+        self.user_stats: dict[int, dict[str, Any]] = defaultdict(lambda: {
             "commands_used": 0,
             "total_time": 0.0,
             "last_activity": None,
@@ -78,7 +77,7 @@ class MetricsCollector:
         }
         
         # Аудит-трейлы
-        self.audit_trails: List[Dict[str, Any]] = []
+        self.audit_trails: list[dict[str, Any]] = []
         
         info("Система метрик инициализирована", "metrics")
     
@@ -89,7 +88,7 @@ class MetricsCollector:
         user_id: int, 
         execution_time: float, 
         success: bool = True,
-        error_msg: Optional[str] = None
+        error_msg: str | None = None
     ) -> None:
         """Записывает выполнение команды."""
         
@@ -160,7 +159,7 @@ class MetricsCollector:
         
     
     @log_call("metrics")
-    def record_error(self, error_type: str, user_id: int, error_msg: str, context: Dict[str, Any] = None) -> None:
+    def record_error(self, error_type: str, user_id: int, error_msg: str, context: dict[str, Any] = None) -> None:
         """Записывает ошибку."""
         
         current_time = datetime.now()
@@ -180,7 +179,7 @@ class MetricsCollector:
         
         debug(f"Записана ошибка {error_type} для пользователя {user_id}: {error_msg}", "metrics")
     
-    def _add_audit_trail(self, event: Dict[str, Any]) -> None:
+    def _add_audit_trail(self, event: dict[str, Any]) -> None:
         """Добавляет событие в аудит-трейл."""
         self.audit_trails.append(event)
         
@@ -212,7 +211,7 @@ class MetricsCollector:
         self.usage_patterns["peak_hours"] = sorted_hours[:10]  # Топ-10 пиковых часов
     
     @log_call("metrics")
-    def get_command_statistics(self) -> Dict[str, Any]:
+    def get_command_statistics(self) -> dict[str, Any]:
         """Возвращает статистику команд."""
         
         stats = {}
@@ -230,7 +229,7 @@ class MetricsCollector:
         return stats
     
     @log_call("metrics")
-    def get_user_statistics(self) -> Dict[str, Any]:
+    def get_user_statistics(self) -> dict[str, Any]:
         """Возвращает статистику пользователей."""
         
         stats = {}
@@ -249,7 +248,7 @@ class MetricsCollector:
         return stats
     
     @log_call("metrics")
-    def get_performance_metrics(self) -> Dict[str, Any]:
+    def get_performance_metrics(self) -> dict[str, Any]:
         """Возвращает метрики производительности."""
         
         response_times = list(self.performance_metrics["response_times"])
@@ -272,7 +271,7 @@ class MetricsCollector:
         return metrics
     
     @log_call("metrics")
-    def get_usage_patterns(self) -> Dict[str, Any]:
+    def get_usage_patterns(self) -> dict[str, Any]:
         """Возвращает паттерны использования."""
         
         patterns = {
@@ -289,7 +288,7 @@ class MetricsCollector:
         return patterns
     
     @log_call("metrics")
-    def get_audit_trails(self, limit: int = 100) -> List[Dict[str, Any]]:
+    def get_audit_trails(self, limit: int = 100) -> list[dict[str, Any]]:
         """Возвращает аудит-трейлы."""
         
         trails = self.audit_trails[-limit:] if limit > 0 else self.audit_trails
@@ -336,7 +335,7 @@ class MetricsCollector:
             
             latest_file = max(metrics_files, key=lambda x: x.stat().st_mtime)
             
-            with open(latest_file, 'r', encoding='utf-8') as f:
+            with open(latest_file, encoding='utf-8') as f:
                 metrics_data = json.load(f)
             
             # Восстанавливаем данные
@@ -384,7 +383,7 @@ class MetricsCollector:
 
 
 # Глобальный экземпляр сборщика метрик
-metrics_collector: Optional[MetricsCollector] = None
+metrics_collector: MetricsCollector | None = None
 
 
 def init_metrics(data_dir: str = "./data") -> MetricsCollector:

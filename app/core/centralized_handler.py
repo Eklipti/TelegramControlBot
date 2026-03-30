@@ -20,7 +20,6 @@
 """
 
 import logging
-from typing import Any, Dict, Optional
 
 from ..services.centralized_logging import get_centralized_logger
 

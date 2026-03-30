@@ -24,7 +24,7 @@ from aiogram.filters import Command
 from aiogram.types import BufferedInputFile, Message
 
 from ..config import get_settings
-from ..core.logging import debug, error, info, warning
+from ..core.logging import info, warning
 from ..help_texts import get_command_help_text
 from ..router import router
 

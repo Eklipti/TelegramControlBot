@@ -22,20 +22,21 @@
 import asyncio
 import functools
 import time
-from typing import Any, Callable, Optional
+from collections.abc import Callable
+from typing import Any
 
 from ..core.logging import error, trace_function_entry, trace_function_exit
 from ..services.metrics import get_metrics_collector
 
 
-def _extract_user_id(args: tuple) -> Optional[int]:
+def _extract_user_id(args: tuple) -> int | None:
     """Извлекает user_id из аргументов (обычно первый аргумент - это Message)."""
     if args and hasattr(args[0], 'from_user') and args[0].from_user:
         return args[0].from_user.id
     return None
 
 
-def _track_command_execution(cmd_name: str, user_id: Optional[int], args: tuple):
+def _track_command_execution(cmd_name: str, user_id: int | None, args: tuple):
     """Общая логика отслеживания выполнения команды."""
     if user_id:
         get_metrics_collector().record_user_session(user_id, "start")
@@ -109,13 +110,12 @@ def track_command_metrics(command_name: str = None):
                 with _track_command_execution(cmd_name, user_id, args):
                     return await func(*args, **kwargs)
             return async_wrapper
-        else:
-            @functools.wraps(func)
-            def sync_wrapper(*args, **kwargs) -> Any:
-                user_id = _extract_user_id(args)
-                with _track_command_execution(cmd_name, user_id, args):
-                    return func(*args, **kwargs)
-            return sync_wrapper
+        @functools.wraps(func)
+        def sync_wrapper(*args, **kwargs) -> Any:
+            user_id = _extract_user_id(args)
+            with _track_command_execution(cmd_name, user_id, args):
+                return func(*args, **kwargs)
+        return sync_wrapper
     
     return decorator
 
@@ -143,16 +143,15 @@ def track_performance(func: Callable) -> Callable:
             finally:
                 _record_metrics(time.time() - start_time, success)
         return async_wrapper
-    else:
-        @functools.wraps(func)
-        def sync_wrapper(*args, **kwargs) -> Any:
-            start_time = time.time()
-            success = True
-            try:
-                return func(*args, **kwargs)
-            except Exception:
-                success = False
-                raise
-            finally:
-                _record_metrics(time.time() - start_time, success)
-        return sync_wrapper
+    @functools.wraps(func)
+    def sync_wrapper(*args, **kwargs) -> Any:
+        start_time = time.time()
+        success = True
+        try:
+            return func(*args, **kwargs)
+        except Exception:
+            success = False
+            raise
+        finally:
+            _record_metrics(time.time() - start_time, success)
+    return sync_wrapper

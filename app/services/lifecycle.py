@@ -19,7 +19,7 @@ from aiogram import Bot
 from aiogram.types import BotCommand
 
 from ..config import Settings
-from ..core.logging import error, info, warning, debug
+from ..core.logging import debug, error, info, warning
 from ..help_texts import COMMAND_HELP
 
 

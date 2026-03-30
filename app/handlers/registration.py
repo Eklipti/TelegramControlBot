@@ -24,26 +24,6 @@
 from aiogram import Dispatcher
 
 # Импортируем все handlers для активации декораторов
-from . import (
-    attachments,
-    auth,
-    cancel,
-    cmd,
-    command_search,
-    files,
-    help,
-    logs_export,
-    menu,
-    monitor,
-    mouse_keyboard,
-    paths_handlers,
-    processes,
-    remote_desktop,
-    screen,
-    security_handlers,
-    stats,
-    system,
-)
 
 
 def register_all_handlers(dp: Dispatcher) -> None:

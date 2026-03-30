@@ -17,22 +17,21 @@
 
 import asyncio
 
-from aiogram                        import Bot, Dispatcher
-from aiogram.client.default         import DefaultBotProperties
-from aiogram.enums                  import ParseMode
-from aiogram.fsm.storage.memory     import MemoryStorage
+from aiogram import Bot, Dispatcher
+from aiogram.client.default import DefaultBotProperties
+from aiogram.enums import ParseMode
+from aiogram.fsm.storage.memory import MemoryStorage
 
-from .handlers.registration         import register_all_handlers
-from .config                        import get_settings  
-from .core.security                 import PrivateChatFilter, init_security
-from .handlers.auth                 import AllowedUserFilter
+from .config import get_settings
+from .config.paths import init_paths_config
+from .core.security import PrivateChatFilter, init_security
+from .handlers.auth import AllowedUserFilter
+from .handlers.registration import register_all_handlers
 from .middleware.logging_middleware import BotInteractionLoggingMiddleware
-from .router                        import router
-
-from .services.lifecycle            import LifecycleManager
-from .services.metrics              import init_metrics
-from .services.centralized_logging  import init_centralized_logging
-from .config.paths                  import init_paths_config
+from .router import router
+from .services.centralized_logging import init_centralized_logging
+from .services.lifecycle import LifecycleManager
+from .services.metrics import init_metrics
 
 
 async def _run() -> None:
