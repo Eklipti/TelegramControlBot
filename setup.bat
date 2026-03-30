@@ -60,7 +60,7 @@ echo.
 echo [5/6] Установка зависимостей...
 echo Это может занять несколько минут...
 python -m pip install --upgrade pip
-pip install -r requirements.txt
+pip install .
 if errorlevel 1 (
     echo [ERROR] Не удалось установить зависимости!
     pause
@@ -98,4 +98,3 @@ echo   2. Запустите start.bat для запуска бота
 echo   3. (Опционально) Запустите install_autostart.bat для добавления в автозагрузку
 echo.
 pause
-

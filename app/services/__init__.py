@@ -5,7 +5,7 @@
 # but WITHOUT ANY WARRANTY; without even the implied warranty of
 #
 # Telegram Control Bot
-# Copyright (C) 2025 Eklipti
+# Copyright (C) 2025-2026 Eklipti
 #
 # Этот проект — свободное программное обеспечение: вы можете
 # распространять и/или изменять его на условиях
