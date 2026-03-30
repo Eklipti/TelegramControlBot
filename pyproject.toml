@@ -4,4 +4,50 @@ version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
 requires-python = ">=3.13"
-dependencies = []
+dependencies = [
+    "aiogram>=3.26.0",
+    "numpy>=2.4.4",
+    "opencv-python>=4.13.0.92",
+    "pillow>=12.1.1",
+    "psutil>=7.2.2",
+    "pyautogui>=0.9.54",
+    "python-dotenv>=1.2.2",
+]
+
+[dependency-groups]
+dev = [
+    "mypy>=1.19.1",
+    "pytest>=9.0.2",
+    "ruff>=0.15.8",
+]
+
+[tool.ruff]
+line-length = 120
+target-version = "py313"
+[tool.ruff.lint]
+select = [
+    "E",
+    "F",
+    "I",
+    "B",
+    "UP",
+    "SIM",
+    "C4",
+    "PTH",
+    "T20",
+    "RET",
+    "RUF",
+]
+[tool.ruff.format]
+quote-style = "double"
+
+[tool.mypy]
+python_version = "3.13"
+check_untyped_defs = true
+warn_return_any = true
+warn_unreachable = true
+ignore_missing_imports = false
+
+[[tool.mypy.overrides]]
+module = ["some_lib.*"]
+ignore_missing_imports = true
