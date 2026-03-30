@@ -13,8 +13,8 @@
 ## Предварительные требования
 
 ### Обязательные
-- **Windows 10/11**
-- **Python 3.11+** — [Скачать](https://www.python.org/downloads/)
+- **Windows 10/11** _(разработка проводилась на windows 11)_
+- **Python 3.13+** — [Скачать](https://www.python.org/downloads/)
 - **Git** (для клонирования) — [Скачать](https://git-scm.com/downloads)
 - **Токен Telegram-бота** — получите от [@BotFather](https://t.me/BotFather)
 - **Telegram User ID** — получите от [@userinfobot](https://t.me/userinfobot)
@@ -28,9 +28,9 @@
 python --version
 ```
 
-Должна отобразиться версия Python 3.11 или выше.
+Должна отобразиться версия Python 3.13 или выше.
 
-## Автоматическая установка (рекомендуется)
+## Автоматическая установка
 
 Самый простой способ установки и настройки бота.
 
