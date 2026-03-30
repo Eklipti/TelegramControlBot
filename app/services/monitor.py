@@ -16,6 +16,7 @@
 # см. <https://www.gnu.org/licenses/>.
 
 import asyncio
+import contextlib
 import os
 
 from aiogram import Bot
@@ -40,10 +41,8 @@ class FileMonitor:
     async def stop(self) -> None:
         if self._task:
             self._task.cancel()
-            try:
+            with contextlib.suppress(Exception):
                 await self._task
-            except Exception:
-                pass
             self._task = None
         async with self._lock:
             self._paths.clear()

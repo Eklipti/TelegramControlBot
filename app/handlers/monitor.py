@@ -15,7 +15,7 @@
 # лицензии GNU вместе с этой программой. Если это не так,
 # см. <https://www.gnu.org/licenses/>.
 
-import os
+from pathlib import Path
 
 from aiogram.filters import Command
 from aiogram.types import Message
@@ -36,10 +36,10 @@ async def handle_monitor_add(message: Message) -> None:
         await message.answer(get_command_help_text("monitor_add"))
         return
 
-    path = os.path.abspath(args[1])
+    path = str(Path(args[1]).resolve())
     info(f"Попытка добавить мониторинг для пути: {path}", "monitor")
-    
-    if not os.path.exists(path):
+
+    if not Path(path).exists():
         warning(f"Путь для мониторинга не существует: {path}", "monitor")
         await message.answer(f"⚠️ Путь не существует: {path}")
         return
@@ -60,7 +60,7 @@ async def handle_monitor_remove(message: Message) -> None:
         await message.answer(get_command_help_text("monitor_remove"))
         return
 
-    path = os.path.abspath(args[1])
+    path = str(Path(args[1]).resolve())
     removed = await monitor.remove_path(path)
     if removed:
         await message.answer(f"⛔ Мониторинг удален для: {path}")

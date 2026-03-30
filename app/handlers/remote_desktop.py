@@ -16,6 +16,7 @@
 # см. <https://www.gnu.org/licenses/>.
 
 import asyncio
+import contextlib
 import io
 import logging
 import time
@@ -34,7 +35,7 @@ async def _rdp_stream(bot, chat_id: int, stop_event: asyncio.Event, fps: int) ->
     interval = 1.0 / fps
     message_id: int | None = None
     last_edit_time = 0.0
-    MIN_EDIT_INTERVAL = 0.4  # Минимум 400мс между edit_message_media
+    MIN_EDIT_INTERVAL = 0.4
 
     try:
         while not stop_event.is_set():
@@ -60,7 +61,6 @@ async def _rdp_stream(bot, chat_id: int, stop_event: asyncio.Event, fps: int) ->
                     message_id = msg.message_id
                     last_edit_time = time.time()
                 else:
-                    # Жесткий rate-limit для edit_message_media
                     current_time = time.time()
                     time_since_last_edit = current_time - last_edit_time
                     if time_since_last_edit < MIN_EDIT_INTERVAL:
@@ -89,7 +89,6 @@ async def _rdp_stream(bot, chat_id: int, stop_event: asyncio.Event, fps: int) ->
     finally:
         if message_id:
             try:
-                # Проверяем rate-limit для финального обновления
                 current_time = time.time()
                 time_since_last_edit = current_time - last_edit_time
                 if time_since_last_edit < MIN_EDIT_INTERVAL:
@@ -98,7 +97,6 @@ async def _rdp_stream(bot, chat_id: int, stop_event: asyncio.Event, fps: int) ->
                 try:
                     screenshot = await asyncio.to_thread(pyautogui.screenshot)
                 except Exception:
-                    # GUI недоступен, пропускаем финальное обновление
                     return
                 img_byte_arr = io.BytesIO()
                 screenshot.save(img_byte_arr, format="JPEG", quality=85)
@@ -126,10 +124,8 @@ async def handle_rdp_start(message: Message) -> None:
     args = message.text.split()
     fps = 1
     if len(args) > 1:
-        try:
+        with contextlib.suppress(Exception):
             fps = max(1, min(int(args[1]), 10))
-        except Exception:
-            pass
 
     if chat_id in RDP_SESSIONS:
         await message.answer(f"ℹ️ Сессия уже запущена ({RDP_SESSIONS[chat_id]['fps']} FPS). Используйте /rdp_stop")

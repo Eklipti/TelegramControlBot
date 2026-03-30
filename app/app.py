@@ -16,6 +16,7 @@
 # см. <https://www.gnu.org/licenses/>.
 
 import asyncio
+import contextlib
 
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
@@ -38,6 +39,7 @@ async def _run() -> None:
     settings = get_settings()
 
     from app.core.logging import info
+
     info("Запуск приложения TelegramControlBot", "app")
 
     bot = Bot(token=settings.telegram_bot_token, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
@@ -54,7 +56,7 @@ async def _run() -> None:
     init_metrics(str(project_root / "data"))
     init_centralized_logging(str(project_root / "logs"), str(project_root / "exports"))
     info("Система мониторинга и метрик инициализирована", "app")
-    
+
     paths_config = init_paths_config()
     info(f"Система путей инициализирована. Загружено {len(paths_config.default_paths)} системных путей", "app")
 
@@ -83,8 +85,7 @@ async def _run() -> None:
         await bot.session.close()
         info("Приложение остановлено", "app")
 
+
 def main() -> None:
-    try:
+    with contextlib.suppress(KeyboardInterrupt):
         asyncio.run(_run())
-    except KeyboardInterrupt:
-        pass

@@ -26,7 +26,6 @@ from ..core.logging import error, info, warning
 from ..help_texts import COMMAND_CATEGORIES, COMMAND_HELP
 from ..router import router
 
-# Структура страниц меню
 MENU_PAGES = {
     1: ["Процессы", "Пути", "Файлы", "Мониторинг"],
     2: ["Командная строка", "Удаленное управление", "Прочее"],
@@ -40,39 +39,25 @@ def create_main_menu_keyboard(page: int = 1) -> InlineKeyboardMarkup:
     """
     if page not in MENU_PAGES:
         page = 1
-    
+
     categories = MENU_PAGES[page]
     keyboard = []
-    
-    # Добавляем кнопки категорий (по 2 в ряд)
+
     for i in range(0, len(categories), 2):
         row = []
         for j in range(2):
             if i + j < len(categories):
                 category = categories[i + j]
-                row.append(InlineKeyboardButton(
-                    text=f"📁 {category}",
-                    callback_data=f"category:{category}"
-                ))
+                row.append(InlineKeyboardButton(text=f"📁 {category}", callback_data=f"category:{category}"))
         keyboard.append(row)
-    
-    # Добавляем навигационную кнопку
+
     if page == 1:
-        keyboard.append([InlineKeyboardButton(
-            text="➡️ Далее (1/3)",
-            callback_data="menu:page:2"
-        )])
+        keyboard.append([InlineKeyboardButton(text="➡️ Далее (1/3)", callback_data="menu:page:2")])
     elif page == 2:
-        keyboard.append([InlineKeyboardButton(
-            text="➡️ Далее (2/3)",
-            callback_data="menu:page:3"
-        )])
+        keyboard.append([InlineKeyboardButton(text="➡️ Далее (2/3)", callback_data="menu:page:3")])
     else:  # page == 3
-        keyboard.append([InlineKeyboardButton(
-            text="⬅️ К началу (3/3)",
-            callback_data="menu:page:1"
-        )])
-    
+        keyboard.append([InlineKeyboardButton(text="⬅️ К началу (3/3)", callback_data="menu:page:1")])
+
     return InlineKeyboardMarkup(inline_keyboard=keyboard)
 
 
@@ -81,66 +66,52 @@ def create_category_keyboard(category: str) -> InlineKeyboardMarkup:
     Создает клавиатуру с командами для указанной категории
     """
     keyboard = []
-    
-    # Получаем список команд для категории
+
     commands = COMMAND_CATEGORIES.get(category, [])
-    
-    # Добавляем кнопки для каждой команды (по 2 в ряд)
+
     for i in range(0, len(commands), 2):
         row = []
         for j in range(2):
             if i + j < len(commands):
                 cmd = commands[i + j]
                 cmd_text = f"/{cmd}"
-                row.append(InlineKeyboardButton(
-                    text=cmd_text,
-                    callback_data=f"exec:/{cmd}"
-                ))
+                row.append(InlineKeyboardButton(text=cmd_text, callback_data=f"exec:/{cmd}"))
         keyboard.append(row)
-    
-    # Добавляем кнопку для полной справки по категории
-    keyboard.append([InlineKeyboardButton(
-        text="📖 Справка по категории",
-        callback_data=f"help_cat:{category}"
-    )])
-    
+
+    keyboard.append([InlineKeyboardButton(text="📖 Справка по категории", callback_data=f"help_cat:{category}")])
+
     return InlineKeyboardMarkup(inline_keyboard=keyboard)
 
 
 def format_category_message(category: str) -> str:
     """Форматирует сообщение для отображения категории команд"""
     commands = COMMAND_CATEGORIES.get(category, [])
-    
-    # Заголовок
+
     message = f"📋 <b>Категория: {category}</b>\n\n"
     message += "Доступные команды:\n"
-    
-    # Список команд с описаниями
+
     for cmd in commands:
         cmd_info = COMMAND_HELP.get(cmd, {})
         description = cmd_info.get("description", "")
         message += f"<code>/{cmd}</code> - {description}\n"
-    
-    # Инструкция
+
     message += "\n💡 <b>Нажмите на кнопку</b> для выполнения команды или <b>скопируйте команду</b> для ручного ввода."
-    
+
     return message
 
 
 def format_category_help_message(category: str) -> str:
     """Форматирует полную справку по всем командам категории"""
     commands = COMMAND_CATEGORIES.get(category, [])
-    
-    # Заголовок
+
     message = f"📖 <b>Полная справка: {category}</b>\n\n"
-    
-    # Подробная справка для каждой команды
+
     for cmd in commands:
         cmd_info = COMMAND_HELP.get(cmd, {})
         detailed = cmd_info.get("detailed", f"Справка для /{cmd} не найдена")
         message += f"{detailed}\n\n"
         message += "─" * 30 + "\n\n"
-    
+
     return message.rstrip()
 
 
@@ -149,9 +120,9 @@ async def handle_menu_page_navigation(callback: CallbackQuery) -> None:
     """Обработчик навигации по страницам главного меню"""
     try:
         page = int(callback.data.split(":")[-1])
-        
+
         info(f"Пользователь {callback.from_user.id} переключился на страницу меню {page}", "menu")
-        
+
         welcome_text = (
             "🤖 <b>Добро пожаловать в TelegramControlBot!</b>\n\n"
             "Этот бот позволяет управлять вашим компьютером удаленно через Telegram.\n\n"
@@ -166,11 +137,11 @@ async def handle_menu_page_navigation(callback: CallbackQuery) -> None:
             "⚖️ <b>Правовое предупреждение:</b> Бот предназначен для администрирования собственных машин."
             "Использование без явного разрешения владельца запрещено."
         )
-        
+
         keyboard = create_main_menu_keyboard(page)
         await callback.message.edit_text(welcome_text, reply_markup=keyboard)
         await callback.answer()
-        
+
     except Exception as e:
         warning(f"Ошибка навигации по меню: {e}", "menu")
         await callback.answer("⚠️ Ошибка навигации", show_alert=True)
@@ -182,18 +153,18 @@ async def handle_category_display(callback: CallbackQuery) -> None:
     try:
         category = callback.data.split(":", 1)[1]
         info(f"Пользователь {callback.from_user.id} открыл категорию '{category}'", "menu")
-        
+
         if category not in COMMAND_CATEGORIES:
             warning(f"Запрошена несуществующая категория: {category}", "menu")
             await callback.answer("⚠️ Категория не найдена", show_alert=True)
             return
-        
+
         message_text = format_category_message(category)
         keyboard = create_category_keyboard(category)
-        
+
         await callback.message.answer(message_text, reply_markup=keyboard)
         await callback.answer()
-        
+
     except Exception as e:
         warning(f"Ошибка отображения категории: {e}", "menu")
         await callback.answer("⚠️ Ошибка отображения категории", show_alert=True)
@@ -299,27 +270,23 @@ async def handle_command_execution(callback: CallbackQuery) -> None:
                 date=callback.message.date,
                 chat=callback.message.chat,
                 from_user=callback.from_user,
-                text=command_full
+                text=command_full,
             )
-            
+
             if callback.bot:
                 synthetic_message._bot = callback.bot
 
             await callback.answer(f"⚡ Выполняется: {command_name}")
-            
-            # Вызываем обработчик напрямую
+
             await pure_handlers[command_name](synthetic_message)
-            
+
         else:
-            # Если команда требует аргументов (например, /on, /type, /upload)
             await callback.answer(
-                f"⌨️ Эта команда требует ввода параметров.\nСкопируйте: {command_full} [параметры]", 
-                show_alert=True
+                f"⌨️ Эта команда требует ввода параметров.\nСкопируйте: {command_full} [параметры]", show_alert=True
             )
 
     except Exception as e:
         error(f"Ошибка выполнения команды через меню: {e}", "menu")
-        # В продакшене можно скрыть детали ошибки
         await callback.answer(f"⚠️ Ошибка: {str(e)[:100]}", show_alert=True)
 
 
@@ -329,14 +296,14 @@ async def handle_category_help(callback: CallbackQuery) -> None:
     try:
         category = callback.data.split(":", 1)[1]
         info(f"Пользователь {callback.from_user.id} запросил справку по категории '{category}'", "menu")
-        
+
         if category not in COMMAND_CATEGORIES:
             warning(f"Запрошена справка для несуществующей категории: {category}", "menu")
             await callback.answer("⚠️ Категория не найдена", show_alert=True)
             return
-        
+
         help_text = format_category_help_message(category)
-        
+
         # Telegram ограничивает длину сообщения до 4096 символов
         if len(help_text) > 4096:
             parts = []
@@ -349,14 +316,14 @@ async def handle_category_help(callback: CallbackQuery) -> None:
                     current_part += line + "\n"
             if current_part:
                 parts.append(current_part)
-            
+
             for part in parts:
                 await callback.message.answer(part)
         else:
             await callback.message.answer(help_text)
-        
+
         await callback.answer("📖 Справка отправлена")
-        
+
     except Exception as e:
         warning(f"Ошибка отображения справки по категории: {e}", "menu")
         await callback.answer("⚠️ Ошибка отображения справки", show_alert=True)

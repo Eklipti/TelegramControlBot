@@ -18,9 +18,11 @@
 """
 Утилиты для потокового чтения stdout/stderr подпроцессов и обновления сообщений Telegram.
 """
+
 from __future__ import annotations
 
 import asyncio
+import contextlib
 import html
 from collections.abc import Callable
 
@@ -79,10 +81,8 @@ async def stream_process_to_message(
                     display_lines = lines[-max_tail_lines:] if len(lines) > max_tail_lines else lines
                     display_output = html.escape("\n".join(display_lines))
                     content = f"<code>{_status(elapsed, line_count)}\n{'-' * 20}\n{display_output}</code>"
-                    try:
+                    with contextlib.suppress(Exception):
                         await bot.edit_message_text(chat_id=chat_id, message_id=message_id, text=content)
-                    except Exception:
-                        pass
                     last_update = current
                 await asyncio.sleep(0.01)
                 continue
@@ -100,7 +100,7 @@ async def stream_process_to_message(
 
             full_output += text
             line_count += text.count("\n")
-            
+
             # Сохраняем полный вывод в сессии для доступа через cmd_dump
             if session_storage is not None:
                 session_storage["full_output"] = full_output
@@ -112,10 +112,8 @@ async def stream_process_to_message(
                 display_lines = lines[-max_tail_lines:] if len(lines) > max_tail_lines else lines
                 display_output = html.escape("\n".join(display_lines))
                 content = f"<code>{_status(elapsed, line_count)}\n{'-' * 20}\n{display_output}</code>"
-                try:
+                with contextlib.suppress(Exception):
                     await bot.edit_message_text(chat_id=chat_id, message_id=message_id, text=content)
-                except Exception:
-                    pass
                 last_update = current
     finally:
         # Финальный «хвост» и статус
@@ -137,9 +135,7 @@ async def stream_process_to_message(
         display_lines = lines[-final_tail_lines:] if len(lines) > final_tail_lines else lines
         display_output = html.escape("\n".join(display_lines))
         content = f"{status}\n<code>{_status(elapsed, line_count)}\n{'-' * 20}\n{display_output}</code>"
-        try:
+        with contextlib.suppress(Exception):
             await bot.edit_message_text(chat_id=chat_id, message_id=message_id, text=content)
-        except Exception:
-            pass
 
         debug(f"proc finished rc={rc}, elapsed={elapsed}s, lines={line_count}", "cmd_stream")

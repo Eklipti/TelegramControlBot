@@ -37,6 +37,7 @@ async def handle_reload(message: Message) -> None:
         timeout=action_config["timeout"],
     )
 
+
 @router.message(Command("tasklist"))
 async def handle_tasklist(message: Message) -> None:
     try:
@@ -79,7 +80,6 @@ async def handle_tasklist(message: Message) -> None:
                 caption="📋 Детальный список процессов",
             )
     except Exception as e:
-        # Mask error details per policy [[memory:4740490]]
         err = str(e)
         masked = f"len={len(err)}, first='{err[0] if err else ''}', last='{err[-1] if err else ''}'"
         await message.answer(f"⚠️ Ошибка: {masked}")

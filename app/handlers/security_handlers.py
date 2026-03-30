@@ -20,7 +20,7 @@
 """
 
 import asyncio
-import os
+from pathlib import Path
 
 from aiogram import F
 from aiogram.types import BufferedInputFile, CallbackQuery
@@ -38,7 +38,6 @@ async def handle_confirmation_callback(callback: CallbackQuery) -> None:
     result = await manager.handle_confirmation_callback(callback)
 
     if result is not None:
-        # Действие подтверждено, выполняем соответствующую логику
         action_type = result.get("action_type")
 
         if action_type == "reload":
@@ -83,10 +82,8 @@ async def _execute_file_delete(callback: CallbackQuery, result: dict) -> None:
         return
 
     try:
-        import os
-
-        if os.path.exists(file_path):
-            os.remove(file_path)
+        if Path(file_path).exists():
+            Path(file_path).unlink()
             await callback.bot.send_message(callback.from_user.id, f"✅ Файл успешно удален:\n{file_path}")
         else:
             await callback.bot.send_message(callback.from_user.id, f"⚠️ Файл не найден: {file_path}")
@@ -193,13 +190,13 @@ async def _execute_process_stop_all(callback: CallbackQuery, result: dict) -> No
 async def _execute_rdp_start(callback: CallbackQuery, result: dict) -> None:
     """Выполняет запуск RDP сессии"""
     from ..core.logging import error, info
-    
+
     try:
         fps = result.get("fps", 1)
         chat_id = callback.from_user.id
-        
+
         from ..handlers.remote_desktop import RDP_SESSIONS, _rdp_stream
-        
+
         if chat_id in RDP_SESSIONS:
             session_info = RDP_SESSIONS[chat_id]
             await callback.bot.send_message(
@@ -207,28 +204,24 @@ async def _execute_rdp_start(callback: CallbackQuery, result: dict) -> None:
             )
             return
 
-        # Запускаем RDP сессию
         stop_event = asyncio.Event()
         task = asyncio.create_task(_rdp_stream(callback.bot, chat_id, stop_event, fps))
         RDP_SESSIONS[chat_id] = {"task": task, "stop_event": stop_event, "fps": fps}
-        
+
         await callback.bot.send_message(
             chat_id, f"✅ RDP сессия запущена с FPS {fps}. Используйте /rdp_stop для остановки"
         )
         info(f"RDP сессия успешно запущена для пользователя {chat_id}")
-            
+
     except Exception as e:
         error(f"Ошибка при запуске RDP сессии: {e}", "security")
-        await callback.bot.send_message(
-            callback.from_user.id, f"❌ Ошибка при запуске RDP сессии: {e!s}"
-        )
+        await callback.bot.send_message(callback.from_user.id, f"❌ Ошибка при запуске RDP сессии: {e!s}")
 
 
 async def _execute_folder_download(callback: CallbackQuery, result: dict) -> None:
     """Выполняет скачивание папки после подтверждения"""
     from ..handlers.files import execute_folder_download
 
-    # Добавляем необходимые данные для выполнения
     action_data = result.get("action_data", {})
     action_data.update({"bot": callback.bot, "chat_id": callback.from_user.id, "message": callback.message})
 
@@ -245,19 +238,19 @@ async def _execute_file_cut(callback: CallbackQuery, result: dict) -> None:
         return
 
     try:
-        if not os.path.exists(file_path) or not os.path.isfile(file_path):
+        if not Path(file_path).exists() or not Path(file_path).is_file():
             await callback.bot.send_message(callback.from_user.id, f"⚠️ Файл уже не существует: {file_path}")
             return
-        
-        with open(file_path, "rb") as f:
+
+        with Path(file_path).open("rb") as f:
             await callback.bot.send_document(
                 callback.from_user.id,
-                BufferedInputFile(f.read(), filename=os.path.basename(file_path)),
-                caption=f"✂️ Файл: {file_path}\n📊 Размер: {format_size(file_size)}"
+                BufferedInputFile(f.read(), filename=Path(file_path).name),
+                caption=f"✂️ Файл: {file_path}\n📊 Размер: {format_size(file_size)}",
             )
 
-        os.remove(file_path)
-        
+        Path(file_path).unlink()
+
         await callback.bot.send_message(callback.from_user.id, f"✅ Файл скачан и удален:\n{file_path}")
 
     except Exception as e:

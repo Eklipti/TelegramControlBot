@@ -16,9 +16,11 @@
 # см. <https://www.gnu.org/licenses/>.
 
 import asyncio
+import contextlib
 import os
 import subprocess
 import time
+from pathlib import Path
 
 from aiogram.filters import Command
 from aiogram.types import BufferedInputFile, Message
@@ -27,6 +29,8 @@ from ..config import get_settings
 from ..core.logging import info, warning
 from ..help_texts import get_command_help_text
 from ..router import router
+
+_search_tasks = set()
 
 
 @router.message(Command("find"))
@@ -60,15 +64,11 @@ async def handle_find(message: Message) -> None:
                 elif param.startswith("root:"):
                     root_dir = param[5:]
                 elif param.startswith("limit:"):
-                    try:
+                    with contextlib.suppress(Exception):
                         limit_count = max(1, min(int(param[6:]), 10000))
-                    except Exception:
-                        pass
                 elif param.startswith("timeout:"):
-                    try:
+                    with contextlib.suppress(Exception):
                         timeout_sec = max(5, min(int(param[8:]), 600))
-                    except Exception:
-                        pass
 
             is_windows = os.name == "nt"
             encoding = get_settings().get_encoding()
@@ -77,20 +77,18 @@ async def handle_find(message: Message) -> None:
 
             if is_windows:
                 if not root_dir:
-                    # Безопасный дефолт, чтобы не сканировать весь диск
-                    root_dir = os.getcwd()
+                    # чтобы не сканировать весь диск
+                    root_dir = str(Path.cwd())
                 cmd = ["where", "/R", root_dir, name_filter or "*"]
             else:
                 # На *nix требуем явный root
                 if not root_dir:
-                    try:
+                    with contextlib.suppress(Exception):
                         await message.bot.edit_message_text(
                             chat_id=msg.chat.id,
                             message_id=msg.message_id,
                             text="⚠️ Укажите корень поиска: root:/path (на *nix обязательно)",
                         )
-                    except Exception:
-                        pass
                     return
                 cmd = ["find", root_dir, "-type", "f"]
                 if name_filter:
@@ -98,7 +96,6 @@ async def handle_find(message: Message) -> None:
                 if size_filter:
                     cmd += ["-size", size_filter]
 
-            # Краткое сообщение о параметрах и лимитах
             try:
                 progress = (
                     "🔍 Поиск файлов...\n"
@@ -131,7 +128,6 @@ async def handle_find(message: Message) -> None:
 
             raw_files = [f for f in stdout_text.split("\n") if f.strip()]
 
-            # Постфильтрация по расширениям (кроссплатформенно)
             files = raw_files
             if ext_filter:
                 normalized_exts = [e.lower().lstrip(".") for e in ext_filter]
@@ -142,7 +138,6 @@ async def handle_find(message: Message) -> None:
 
                 files = [f for f in files if has_ext(f)]
 
-            # Лимит результатов на уровне приложения
             if limit_count is not None:
                 files = files[:limit_count]
 
@@ -150,10 +145,8 @@ async def handle_find(message: Message) -> None:
             if len(files) > 50:
                 response += f"\n...и еще {len(files) - 50} файлов"
 
-            try:
+            with contextlib.suppress(Exception):
                 await message.bot.edit_message_text(chat_id=msg.chat.id, message_id=msg.message_id, text=response)
-            except Exception:
-                pass
 
             if files:
                 duration_ms = int((time.time() - started_at) * 1000)
@@ -181,16 +174,15 @@ async def handle_find(message: Message) -> None:
         except Exception as e:
 
             def _mask(text: str) -> str:
-                # Hide sensitive error details: length + first/last char [[memory:4740490]]
                 if not text:
                     return "len=0"
                 return f"len={len(text)}, first='{text[0]}', last='{text[-1]}'"
 
-            try:
+            with contextlib.suppress(Exception):
                 await message.bot.edit_message_text(
                     chat_id=msg.chat.id, message_id=msg.message_id, text=f"⚠️ Ошибка поиска: {_mask(str(e))}"
                 )
-            except Exception:
-                pass
 
-    asyncio.create_task(run_async())
+    task = asyncio.create_task(run_async())
+    _search_tasks.add(task)
+    task.add_done_callback(_search_tasks.discard)

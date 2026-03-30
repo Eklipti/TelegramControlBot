@@ -94,7 +94,7 @@ async def handle_mouse_goto(message: Message) -> None:
         pyautogui.moveTo(x, y)
         await message.answer(f"🖱 Мышь перемещена в позицию '{name}' ({x}, {y})")
     except Exception as e:
-        available = "\n".join([f"- {k}" for k in mouse_positions.keys()])
+        available = "\n".join([f"- {k}" for k in mouse_positions])
         await message.answer(f"⚠️ Ошибка: {e}\nДоступные позиции:\n{available}")
 
 

@@ -15,17 +15,20 @@
 # лицензии GNU вместе с этой программой. Если это не так,
 # см. <https://www.gnu.org/licenses/>.
 
+
 def main() -> None:
     from app.config import get_settings
+
     settings = get_settings()
     project_root = settings.get_project_root()
-    
+
     (project_root / "logs").mkdir(parents=True, exist_ok=True)
     (project_root / "data").mkdir(parents=True, exist_ok=True)
     (project_root / "exports").mkdir(parents=True, exist_ok=True)
     (project_root / "jsons").mkdir(parents=True, exist_ok=True)
 
     from app.core.logging import critical, info, init_logging
+
     init_logging(
         logs_dir=str(project_root / "logs"),
         log_level=settings.log_level,
@@ -35,12 +38,13 @@ def main() -> None:
 
     try:
         from app.app import main as run_aiogram
+
         info("Тяжелые модули импортированы успешно", "main")
         run_aiogram()
     except Exception as e:
         critical(f"Критическая ошибка при запуске приложения: {e}", "main")
         raise
 
+
 if __name__ == "__main__":
     main()
-

@@ -35,12 +35,14 @@ class PathsConfig:
         jsons_dir: str | Path = "jsons",
     ) -> None:
         """Инициализирует конфигурацию путей"""
-        self.default_paths_file = Path(default_paths_file) if isinstance(default_paths_file, str) else default_paths_file
+        self.default_paths_file = (
+            Path(default_paths_file) if isinstance(default_paths_file, str) else default_paths_file
+        )
         self.jsons_dir = Path(jsons_dir) if isinstance(jsons_dir, str) else jsons_dir
-        
+
         self.default_paths: dict[str, Any] = {}
         self.user_paths: dict[int, dict[str, Any]] = {}  # telegram_id -> paths
-        
+
         self.load_default_paths()
         self.load_all_user_paths()
 
@@ -59,25 +61,24 @@ class PathsConfig:
 
         executable_extensions = {".exe", ".bat", ".cmd", ".com", ".vbs", ".ps1", ".msc"}
         path_dirs = [p.strip() for p in system_path.split(os.pathsep) if p.strip()]
-        
+
         for path_dir in path_dirs:
-            if not os.path.exists(path_dir):
+            dir_path = Path(path_dir)
+            if not dir_path.exists():
                 continue
-                
+
             try:
-                for item in os.listdir(path_dir):
-                    item_path = os.path.join(path_dir, item)
-                    if not os.path.isfile(item_path):
+                for item_path in dir_path.iterdir():
+                    if not item_path.is_file():
                         continue
 
-                    _, ext = os.path.splitext(item)
-                    if os.name == "nt":
-                        if ext.lower() not in executable_extensions:
-                            continue
+                    ext = item_path.suffix
+                    if os.name == "nt" and ext.lower() not in executable_extensions:
+                        continue
 
-                    name = os.path.splitext(item)[0]
+                    name = item_path.stem
                     if name and name not in self.default_paths:
-                        self.default_paths[name] = os.path.abspath(item_path)
+                        self.default_paths[name] = str(item_path.resolve())
             except (OSError, PermissionError):
                 continue
 
@@ -86,43 +87,39 @@ class PathsConfig:
     def load_all_user_paths(self) -> None:
         """Загружает все пользовательские пути из папок пользователей"""
         jsons_path = Path(self.jsons_dir) if isinstance(self.jsons_dir, str) else self.jsons_dir
-        
+
         if not jsons_path.exists():
             return
 
         self.user_paths = {}
-        
-        # Ищем папки пользователей (числовые имена)
+
         for item in jsons_path.iterdir():
             if item.is_dir() and item.name.isdigit():
                 user_id = int(item.name)
                 user_paths_file = item / f"{user_id}_paths.json"
-                
+
                 if user_paths_file.exists():
                     try:
-                        with open(user_paths_file, encoding="utf-8") as f:
+                        with user_paths_file.open(encoding="utf-8") as f:
                             self.user_paths[user_id] = json.load(f)
-                    except Exception as e:
-                        print(f"Ошибка загрузки {user_paths_file}: {e}")
+                    except Exception:
                         self.user_paths[user_id] = {}
 
     def load_user_paths(self, user_id: int) -> dict[str, Any]:
         """Загружает пути конкретного пользователя"""
         if user_id in self.user_paths:
             return self.user_paths[user_id]
-        
-        # Загружаем из файла
+
         user_paths_file = self._get_user_paths_file(user_id)
         if user_paths_file.exists():
             try:
-                with open(user_paths_file, encoding="utf-8") as f:
+                with user_paths_file.open(encoding="utf-8") as f:
                     self.user_paths[user_id] = json.load(f)
-            except Exception as e:
-                print(f"Ошибка загрузки {user_paths_file}: {e}")
+            except Exception:
                 self.user_paths[user_id] = {}
         else:
             self.user_paths[user_id] = {}
-        
+
         return self.user_paths[user_id]
 
     def _get_user_paths_file(self, user_id: int) -> Path:
@@ -137,19 +134,17 @@ class PathsConfig:
             return
 
         user_paths_file = self._get_user_paths_file(user_id)
-        # Создаем директорию если не существует
         user_paths_file.parent.mkdir(parents=True, exist_ok=True)
 
-        with open(user_paths_file, "w", encoding="utf-8") as f:
+        with user_paths_file.open("w", encoding="utf-8") as f:
             json.dump(self.user_paths[user_id], f, indent=4, ensure_ascii=False)
 
     def save_default_paths(self) -> None:
         """Сохраняет системные пути в DEFAULT_PATHS.json"""
         path = Path(self.default_paths_file) if isinstance(self.default_paths_file, str) else self.default_paths_file
-        # Создаем директорию если не существует
         path.parent.mkdir(parents=True, exist_ok=True)
 
-        with open(path, "w", encoding="utf-8") as f:
+        with path.open("w", encoding="utf-8") as f:
             json.dump(self.default_paths, f, indent=4, ensure_ascii=False)
 
     def get_all_paths(self, user_id: int) -> dict[str, Any]:
@@ -161,12 +156,11 @@ class PathsConfig:
 
     def add_user_path(self, user_id: int, name: str, path: str) -> bool:
         """Добавляет пользовательский путь"""
-        if not os.path.exists(path):
+        if not Path(path).exists():
             return False
 
-        # Загружаем пути пользователя
         user_paths = self.load_user_paths(user_id)
-        user_paths[name] = os.path.abspath(path)
+        user_paths[name] = str(Path(path).resolve())
         self.user_paths[user_id] = user_paths
         self.save_user_paths(user_id)
         return True
@@ -191,7 +185,7 @@ class PathsConfig:
         self.load_default_paths()
         self.load_all_user_paths()
 
-    def get_stats(self, user_id: int = None) -> dict[str, int]:
+    def get_stats(self, user_id: int | None = None) -> dict[str, int]:
         """Возвращает статистику путей"""
         if user_id is not None:
             user_paths = self.load_user_paths(user_id)

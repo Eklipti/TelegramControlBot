@@ -28,29 +28,24 @@ class Settings:
 
     def __init__(self) -> None:
         """Загружает настройки из переменных окружения."""
-        # Загружаем .env файл если существует
         env_file = Path(".env")
         if env_file.exists():
             load_dotenv(env_file)
         else:
             load_dotenv()
 
-        # Обязательные параметры
         self.telegram_bot_token: str = os.getenv("TELEGRAM_BOT_TOKEN", "")
         if not self.telegram_bot_token:
             raise ValueError("TELEGRAM_BOT_TOKEN не установлен в переменных окружения или .env файле")
 
-        # Опциональные параметры
         self.allowed_user_ids: str = os.getenv("ALLOWED_USER_IDS", "")
         self.log_level: str = os.getenv("LOG_LEVEL", "INFO").upper()
-        
-        # Валидация log_level
+
         valid_levels = ["TRACE", "DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
         if self.log_level not in valid_levels:
             warning(f"Неверный log_level '{self.log_level}', используется INFO", "config")
             self.log_level = "INFO"
 
-        # Кодировка
         if os.name == "nt":
             self.encoding: str = "cp1251"
         else:
@@ -112,5 +107,4 @@ def reload_settings() -> Settings:
     return _settings
 
 
-# Экспорт
 __all__ = ["Settings", "get_settings", "reload_settings"]

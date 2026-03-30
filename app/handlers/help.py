@@ -60,7 +60,7 @@ async def handle_help(message: Message) -> None:
         if matched_cmd and matched_cmd in COMMAND_HELP:
             help_data = COMMAND_HELP[matched_cmd]
             # Текст в help_texts.py уже содержит всё необходимое форматирование.
-            response = help_data['detailed']
+            response = help_data["detailed"]
             await message.answer(response)
         else:
             await message.answer(f"❌ Команда '{cmd}' не найдена. Используйте /help для списка команд")

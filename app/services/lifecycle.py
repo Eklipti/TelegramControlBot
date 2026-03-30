@@ -30,7 +30,7 @@ class LifecycleManager:
 
     async def on_startup(self) -> None:
         info("Начало процедуры запуска бота", "lifecycle")
-        
+
         # Register bot commands menu
         try:
             commands = [
@@ -51,12 +51,12 @@ class LifecycleManager:
                 await self.bot.send_message(user_id, "🟢 <b>Бот запущен</b>")
             except Exception as e:
                 warning(f"Не удалось отправить уведомление о запуске пользователю {user_id}: {e}", "lifecycle")
-        
+
         info("Процедура запуска бота завершена", "lifecycle")
 
     async def on_shutdown(self) -> None:
         info("Начало процедуры остановки бота", "lifecycle")
-        
+
         # Отправка уведомлений разрешенным пользователям
         allowed_users = self.settings.get_allowed_user_ids()
         debug(f"Отправка уведомлений об остановке {len(allowed_users)} пользователям", "lifecycle")
@@ -65,5 +65,5 @@ class LifecycleManager:
                 await self.bot.send_message(user_id, "⛔ <b>Бот остановлен</b>")
             except Exception as e:
                 warning(f"Не удалось отправить уведомление об остановке пользователю {user_id}: {e}", "lifecycle")
-        
+
         info("Процедура остановки бота завершена", "lifecycle")

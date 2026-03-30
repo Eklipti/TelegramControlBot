@@ -39,38 +39,38 @@ class BotInteractionLoggingMiddleware(BaseMiddleware):
     ) -> Any:
         """
         Обрабатывает входящие события и логирует их.
-        
+
         Args:
             handler: Следующий обработчик в цепочке
             event: Входящее событие (Message, CallbackQuery, etc.)
             data: Данные для передачи в обработчик
         """
-        trace_function_entry("BotInteractionLoggingMiddleware.__call__", 
-                           args=(type(event).__name__,), 
-                           kwargs={"data_keys": list(data.keys())},
-                           logger_name="middleware")
+        trace_function_entry(
+            "BotInteractionLoggingMiddleware.__call__",
+            args=(type(event).__name__,),
+            kwargs={"data_keys": list(data.keys())},
+            logger_name="middleware",
+        )
 
         # Логируем входящее событие
         await self._log_incoming_event(event, data)
-        
+
         try:
             # Вызываем следующий обработчик
             result = await handler(event, data)
-            
+
             # Логируем успешную обработку
             await self._log_successful_processing(event, result)
-            
-            trace_function_exit("BotInteractionLoggingMiddleware.__call__", 
-                              result="success",
-                              logger_name="middleware")
+
+            trace_function_exit("BotInteractionLoggingMiddleware.__call__", result="success", logger_name="middleware")
             return result
-            
+
         except Exception as e:
             # Логируем ошибку обработки
             await self._log_processing_error(event, e)
-            trace_function_exit("BotInteractionLoggingMiddleware.__call__", 
-                              result=f"error: {e}",
-                              logger_name="middleware")
+            trace_function_exit(
+                "BotInteractionLoggingMiddleware.__call__", result=f"error: {e}", logger_name="middleware"
+            )
             raise
 
     async def _log_incoming_event(self, event: TelegramObject, data: dict[str, Any]) -> None:
@@ -88,7 +88,7 @@ class BotInteractionLoggingMiddleware(BaseMiddleware):
         """Логирует входящее сообщение."""
         user = message.from_user
         chat = message.chat
-        
+
         # Основная информация о сообщении
         message_info = {
             "message_id": message.message_id,
@@ -110,19 +110,21 @@ class BotInteractionLoggingMiddleware(BaseMiddleware):
             "has_poll": bool(message.poll),
             "has_dice": bool(message.dice),
         }
-        
+
         # Логируем основную информацию
-        info(f"Получено сообщение от пользователя {user.id} ({user.username or 'без username'}) "
-             f"в чат {chat.id} ({chat.type}): {message.text or 'без текста'}", 
-             "bot_interaction")
-        
+        info(
+            f"Получено сообщение от пользователя {user.id} ({user.username or 'без username'}) "
+            f"в чат {chat.id} ({chat.type}): {message.text or 'без текста'}",
+            "bot_interaction",
+        )
+
         # Детальная информация для отладки
         debug(f"Детали сообщения: {message_info}", "bot_interaction")
-        
+
         # TRACE информация о содержимом
         if message.text:
             trace(f"Текст сообщения: {message.text}", "bot_interaction")
-        
+
         # Логируем медиа файлы
         if message.photo:
             trace(f"Фото: {len(message.photo)} вариантов размеров", "bot_interaction")
@@ -135,7 +137,7 @@ class BotInteractionLoggingMiddleware(BaseMiddleware):
         """Логирует callback запрос."""
         user = callback.from_user
         message = callback.message
-        
+
         callback_info = {
             "callback_id": callback.id,
             "user_id": user.id if user else None,
@@ -144,14 +146,16 @@ class BotInteractionLoggingMiddleware(BaseMiddleware):
             "message_id": message.message_id if message else None,
             "chat_id": message.chat.id if message and message.chat else None,
         }
-        
+
         # Логируем основную информацию
-        info(f"Получен callback от пользователя {user.id} ({user.username or 'без username'}): {callback.data}", 
-             "bot_interaction")
-        
+        info(
+            f"Получен callback от пользователя {user.id} ({user.username or 'без username'}): {callback.data}",
+            "bot_interaction",
+        )
+
         # Детальная информация для отладки
         debug(f"Детали callback: {callback_info}", "bot_interaction")
-        
+
         # TRACE информация
         trace(f"Callback data: {callback.data}", "bot_interaction")
 
@@ -159,29 +163,36 @@ class BotInteractionLoggingMiddleware(BaseMiddleware):
         """Логирует успешную обработку события."""
         if isinstance(event, Message):
             user = event.from_user
-            info(f"Сообщение от пользователя {user.id} ({user.username or 'без username'}) успешно обработано", 
-                 "bot_interaction")
+            info(
+                f"Сообщение от пользователя {user.id} ({user.username or 'без username'}) успешно обработано",
+                "bot_interaction",
+            )
         elif isinstance(event, CallbackQuery):
             user = event.from_user
-            info(f"Callback от пользователя {user.id} ({user.username or 'без username'}) успешно обработан", 
-                 "bot_interaction")
-        
-        trace(f"Результат обработки: {type(result).__name__ if result is not None else 'None'}", 
-              "bot_interaction")
+            info(
+                f"Callback от пользователя {user.id} ({user.username or 'без username'}) успешно обработан",
+                "bot_interaction",
+            )
+
+        trace(f"Результат обработки: {type(result).__name__ if result is not None else 'None'}", "bot_interaction")
 
     async def _log_processing_error(self, event: TelegramObject, error: Exception) -> None:
         """Логирует ошибку обработки события."""
         from ..core.logging import error as log_error
-        
+
         if isinstance(event, Message):
             user = event.from_user
-            log_error(f"Ошибка обработки сообщения от пользователя {user.id} ({user.username or 'без username'}): {error}", 
-                     "bot_interaction")
+            log_error(
+                f"Ошибка обработки сообщения от пользователя {user.id} ({user.username or 'без username'}): {error}",
+                "bot_interaction",
+            )
         elif isinstance(event, CallbackQuery):
             user = event.from_user
-            log_error(f"Ошибка обработки callback от пользователя {user.id} ({user.username or 'без username'}): {error}", 
-                     "bot_interaction")
+            log_error(
+                f"Ошибка обработки callback от пользователя {user.id} ({user.username or 'без username'}): {error}",
+                "bot_interaction",
+            )
         else:
             log_error(f"Ошибка обработки события {type(event).__name__}: {error}", "bot_interaction")
-        
+
         trace(f"Детали ошибки: {error}", "bot_interaction")

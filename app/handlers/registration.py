@@ -29,10 +29,9 @@ from aiogram import Dispatcher
 def register_all_handlers(dp: Dispatcher) -> None:
     """
     Регистрирует все handlers в Dispatcher.
-    
+
     Фактически, все handlers уже зарегистрированы через декораторы при импорте модулей выше.
     Эта функция существует для явного вызова из app.py и обеспечения
     правильного порядка инициализации.
     """
-    # Handlers уже зарегистрированы через декораторы при импорте
     pass

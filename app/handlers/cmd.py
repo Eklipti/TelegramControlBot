@@ -16,8 +16,10 @@
 # см. <https://www.gnu.org/licenses/>.
 
 import asyncio
+import contextlib
 import logging
 import os
+from pathlib import Path
 
 from aiogram import F
 from aiogram.filters import Command
@@ -65,7 +67,7 @@ async def handle_cmd_session_start(message: Message) -> None:
 
     shell_cmd = ["cmd.exe"] if os.name == "nt" else ["/bin/bash"]
     debug(f"Запуск оболочки: {shell_cmd}", "cmd_handler")
-    
+
     try:
         proc = await asyncio.create_subprocess_exec(
             *shell_cmd,
@@ -85,8 +87,7 @@ async def handle_cmd_session_start(message: Message) -> None:
     cmd_sessions[chat_id] = session
     info(f"Cmd сессия создана для чата {chat_id}, message_id: {msg.message_id}", "cmd_handler")
 
-    # Стартуем поток чтения и обновления
-    asyncio.create_task(
+    session["stream_task"] = asyncio.create_task(
         stream_process_to_message(
             chat_id=chat_id,
             message_id=msg.message_id,
@@ -141,6 +142,7 @@ async def handle_cmd(message: Message) -> None:
         logging.exception("Ошибка отправки команды в cmd")
         await message.answer(f"⚠️ Ошибка отправки команды: {e}")
 
+
 @router.message(Command("cmd_session_stop"))
 @log_call("cmd_handler")
 async def handle_cmd_session_stop(message: Message) -> None:
@@ -152,12 +154,9 @@ async def handle_cmd_session_stop(message: Message) -> None:
             try:
                 session["process"].terminate()
             except Exception:
-                try:
+                with contextlib.suppress(Exception):
                     session["process"].kill()
-                except Exception:
-                    pass
             session["active"] = False
-            # Очищаем настройки интервала для этого чата
             update_intervals.pop(chat_id, None)
             await message.answer("⛔ Cmd сессия завершена")
         else:
@@ -177,10 +176,8 @@ async def handle_cmd_update(message: Message) -> None:
 
     session = cmd_sessions[chat_id]
     try:
-        # Устанавливаем флаг для принудительного обновления
         if "force_refresh" in session:
             session["force_refresh"].set()
-        # Отвечаем только через callback, не спамим чат
         await message.answer("🔄 Обновление...", reply_to_message_id=message.message_id)
     except Exception as e:
         logging.exception("Ошибка обновления cmd сессии")
@@ -204,7 +201,6 @@ async def handle_cmd_update_callback(callback: CallbackQuery) -> None:
 
     session = cmd_sessions[chat_id]
     try:
-        # Устанавливаем флаг для принудительного обновления
         if "force_refresh" in session:
             session["force_refresh"].set()
             debug(f"Флаг force_refresh установлен для чата {chat_id}", "cmd_handler")
@@ -225,7 +221,6 @@ async def handle_cmd_dump(message: Message) -> None:
         await message.answer("ℹ️ Нет активной cmd сессии для дампа")
         return
 
-    # Получаем полный вывод из сессии (если доступен)
     session = cmd_sessions[chat_id]
     if "full_output" not in session:
         await message.answer("⚠️ Полный вывод недоступен. Попробуйте после выполнения команды.")
@@ -237,7 +232,6 @@ async def handle_cmd_dump(message: Message) -> None:
         return
 
     try:
-        # Создаем временный файл
         import tempfile
         from datetime import datetime
 
@@ -250,12 +244,10 @@ async def handle_cmd_dump(message: Message) -> None:
             f.write(full_output)
             temp_file_path = f.name
 
-        # Отправляем файл
         file_input = FSInputFile(temp_file_path, filename="cmd_output.txt")
         await message.answer_document(file_input, caption="📄 Полный вывод cmd сессии")
 
-        # Удаляем временный файл
-        os.unlink(temp_file_path)
+        Path(temp_file_path).unlink()
 
     except Exception as e:
         logging.exception("Ошибка создания дампа cmd сессии")

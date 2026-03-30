@@ -27,16 +27,16 @@ from ..state import download_requests, upload_requests
 async def handle_cancel(message: Message) -> None:
     chat_id = message.chat.id
     info(f"Отмена операций для пользователя {chat_id}", "cancel")
-    
+
     had_upload = chat_id in upload_requests
     had_download = chat_id in download_requests
-    
+
     upload_requests.pop(chat_id, None)
     download_requests.pop(chat_id, None)
-    
+
     if had_upload or had_download:
         info(f"Операции отменены: upload={had_upload}, download={had_download}", "cancel")
     else:
         info("Нет активных операций для отмены", "cancel")
-    
+
     await message.answer("❌ Операция отменена")

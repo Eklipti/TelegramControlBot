@@ -15,9 +15,10 @@
 # лицензии GNU вместе с этой программой. Если это не так,
 # см. <https://www.gnu.org/licenses/>.
 
+import contextlib
 import io
-import os
 import tempfile
+from pathlib import Path
 
 import cv2
 import pyautogui
@@ -47,20 +48,20 @@ async def handle_file(message: Message) -> None:
                 original_name = "uploaded_photo.jpg"
                 debug(f"Загружается фото: {original_name}", "attachments")
 
-            if os.path.isdir(target_path):
-                final_path = os.path.join(target_path, original_name)
-            else:
-                final_path = target_path
+            target_p = Path(target_path)
 
-            dir_path = os.path.dirname(final_path)
-            if dir_path and not os.path.exists(dir_path):
-                os.makedirs(dir_path)
+            final_path = target_p / original_name if target_p.is_dir() else target_p
+
+            dir_path = final_path.parent
+            if not dir_path.exists():
+                dir_path.mkdir(parents=True, exist_ok=True)
                 debug(f"Создана директория: {dir_path}", "attachments")
 
             file = await message.bot.get_file(file_id)
             buf = io.BytesIO()
             await message.bot.download_file(file.file_path, destination=buf)  # type: ignore[arg-type]
-            with open(final_path, "wb") as new_file:
+
+            with final_path.open("wb") as new_file:
                 new_file.write(buf.getvalue())
 
             info(f"Файл успешно сохранен: {final_path}", "attachments")
@@ -72,7 +73,6 @@ async def handle_file(message: Message) -> None:
 
     if message.photo and message.chat.id in screen_find_requests:
         chat_id = message.chat.id
-        # Одноразовый флаг на поиск по фото
         screen_find_requests.discard(chat_id)
         info(f"Начало поиска по фото для пользователя {chat_id}", "attachments")
         template_path: str | None = None
@@ -105,7 +105,10 @@ async def handle_file(message: Message) -> None:
                 x, y = max_loc
                 w, h = template.shape[1], template.shape[0]
                 mouse_positions["found"] = (x + w // 2, y + h // 2)
-                info(f"Объект найден на координатах ({x + w // 2}, {y + h // 2}) с точностью {max_val:.2f}", "attachments")
+                info(
+                    f"Объект найден на координатах ({x + w // 2}, {y + h // 2}) с точностью {max_val:.2f}",
+                    "attachments",
+                )
                 await message.answer(f"🔍 Объект найден! Координаты: ({x + w // 2}, {y + h // 2})")
             else:
                 warning(f"Объект не найден на экране (максимальная точность: {max_val:.2f})", "attachments")
@@ -114,13 +117,9 @@ async def handle_file(message: Message) -> None:
             error(f"Ошибка поиска по фото для пользователя {chat_id}: {e}", "attachments")
             await message.answer(f"⚠️ Ошибка поиска: {e}")
         finally:
-            try:
-                if template_path and os.path.exists(template_path):
-                    os.remove(template_path)
-            except Exception:
-                pass
-            try:
-                if screen_path and os.path.exists(screen_path):
-                    os.remove(screen_path)
-            except Exception:
-                pass
+            with contextlib.suppress(Exception):
+                if template_path:
+                    Path(template_path).unlink(missing_ok=True)
+            with contextlib.suppress(Exception):
+                if screen_path:
+                    Path(screen_path).unlink(missing_ok=True)

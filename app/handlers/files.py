@@ -19,6 +19,7 @@ import os
 import shutil
 import tempfile
 import time
+from pathlib import Path
 
 from aiogram.filters import Command
 from aiogram.types import BufferedInputFile, Message
@@ -27,9 +28,7 @@ from ..core.security import DANGEROUS_ACTIONS, get_confirmation_manager
 from ..help_texts import get_command_help_text
 from ..router import router
 
-# Черный список системных директорий
 SYSTEM_DIRECTORIES_BLACKLIST = {
-    # Windows системные директории
     "C:\\Windows",
     "C:\\Windows\\System32",
     "C:\\Windows\\SysWOW64",
@@ -51,10 +50,9 @@ SYSTEM_DIRECTORIES_BLACKLIST = {
     "AppData\\Roaming\\Microsoft\\Windows\\Recent",
     "C:\\Users\\Default",
     "C:\\Users\\Public",
-    "C:\\Documents and Settings",  # ну мало ли
+    "C:\\Documents and Settings",
 }
 
-# Максимальные размеры для скачивания
 MAX_FILE_SIZE = 100 * 1024 * 1024  # 100 MB для файлов
 MAX_FOLDER_SIZE = 500 * 1024 * 1024  # 500 MB для папок
 MAX_FOLDER_ITEMS = 10000  # Максимум файлов в папке
@@ -62,17 +60,18 @@ MAX_FOLDER_ITEMS = 10000  # Максимум файлов в папке
 
 def is_path_blacklisted(path: str) -> bool:
     """Проверяет, находится ли путь в черном списке"""
-    abs_path = os.path.abspath(path).lower()
+    abs_path = str(Path(path).resolve()).lower()
 
     for blacklisted in SYSTEM_DIRECTORIES_BLACKLIST:
         blacklisted_lower = blacklisted.lower()
         if abs_path.startswith(blacklisted_lower):
             return True
-        # Проверяем также относительные пути
-        if blacklisted_lower.startswith("appdata") and "appdata" in abs_path:
-            if blacklisted_lower.replace("appdata", "").replace("\\", "") in abs_path:
-                return True
-
+        if (
+            blacklisted_lower.startswith("appdata")
+            and "appdata" in abs_path
+            and blacklisted_lower.replace("appdata", "").replace("\\", "") in abs_path
+        ):
+            return True
     return False
 
 
@@ -88,9 +87,9 @@ def get_folder_size_and_count(path: str) -> tuple[int, int]:
                 break
 
             for filename in filenames:
-                filepath = os.path.join(dirpath, filename)
+                filepath = Path(dirpath) / filename
                 try:
-                    total_size += os.path.getsize(filepath)
+                    total_size += filepath.stat().st_size
                 except OSError:
                     continue
 
@@ -122,7 +121,7 @@ async def handle_upload_command(message: Message) -> None:
         await message.answer(get_command_help_text("upload"))
         return
 
-    target_path = os.path.abspath(args[1])
+    target_path = str(Path(args[1]).resolve())
 
     from ..core.security import DANGEROUS_ACTIONS, get_confirmation_manager
 
@@ -149,15 +148,13 @@ async def handle_download_command(message: Message) -> None:
         await message.answer(get_command_help_text("download"))
         return
 
-    path = os.path.abspath(args[1])
+    path = str(Path(args[1]).resolve())
 
     try:
-        # Проверяем существование пути
-        if not os.path.exists(path):
+        if not Path(path).exists():
             await message.answer(f"⚠️ Путь не существует: {path}")
             return
 
-        # Проверяем черный список
         if is_path_blacklisted(path):
             await message.answer(
                 f"🚫 <b>Доступ запрещен!</b>\n\n"
@@ -170,9 +167,8 @@ async def handle_download_command(message: Message) -> None:
             )
             return
 
-        if os.path.isfile(path):
-            # Проверяем размер файла
-            file_size = os.path.getsize(path)
+        if Path(path).is_file:
+            file_size = Path(path).stat().st_size
             if file_size > MAX_FILE_SIZE:
                 await message.answer(
                     f"⚠️ <b>Файл слишком большой!</b>\n\n"
@@ -182,17 +178,14 @@ async def handle_download_command(message: Message) -> None:
                 )
                 return
 
-            # Скачиваем файл
-            with open(path, "rb") as f:
+            with Path(path).open("rb") as f:
                 await message.answer_document(
-                    BufferedInputFile(f.read(), filename=os.path.basename(path)),
+                    BufferedInputFile(f.read(), filename=Path(path).name),
                     caption=f"📥 Файл: {path}\n📊 Размер: {format_size(file_size)}",
                 )
         else:
-            # Это папка - проверяем размер и количество элементов
             folder_size, item_count = get_folder_size_and_count(path)
 
-            # Проверяем ограничения
             if item_count > MAX_FOLDER_ITEMS:
                 await message.answer(
                     f"⚠️ <b>Папка содержит слишком много элементов!</b>\n\n"
@@ -211,7 +204,6 @@ async def handle_download_command(message: Message) -> None:
                 )
                 return
 
-            # Требуем подтверждение для папок
             from ..core.security import DANGEROUS_ACTIONS, get_confirmation_manager
 
             manager = get_confirmation_manager()
@@ -244,23 +236,22 @@ async def handle_cut_command(message: Message) -> None:
         await message.answer(get_command_help_text("cut"))
         return
 
-    file_path = os.path.abspath(args[1])
+    file_path = str(Path(args[1]).resolve())
 
-    if not os.path.exists(file_path):
+    if not Path(file_path).exists():
         await message.answer(f"⚠️ Файл не существует: {file_path}")
         return
-    if not os.path.isfile(file_path):
+    if not Path(file_path).is_file():
         await message.answer(f"⚠️ Указанный путь не является файлом: {file_path}")
         return
 
     if is_path_blacklisted(file_path):
         await message.answer(
-            "🚫 <b>Доступ запрещен!</b>\n\n"
-            "Путь находится в системной директории и недоступен для скачивания/удаления."
+            "🚫 <b>Доступ запрещен!</b>\n\nПуть находится в системной директории и недоступен для скачивания/удаления."
         )
         return
 
-    file_size = os.path.getsize(file_path)
+    file_size = Path(file_path).stat().st_size
     if file_size > MAX_FILE_SIZE:
         await message.answer(
             f"⚠️ <b>Файл слишком большой!</b>\n\n"
@@ -276,18 +267,17 @@ async def handle_cut_command(message: Message) -> None:
 
     await manager.create_confirmation(
         chat_id=message.chat.id,
-        action_type="file_cut",  
+        action_type="file_cut",
         action_data={
-            "action_type": "file_cut", 
+            "action_type": "file_cut",
             "action_data": {"file_path": file_path, "file_size": file_size},
             "file_path": file_path,
             "file_size": file_size,
         },
-        warning_message=action_config["warning"].format(
-            action_data=f"Файл: {file_path} ({format_size(file_size)})"
-        ),
+        warning_message=action_config["warning"].format(action_data=f"Файл: {file_path} ({format_size(file_size)})"),
         timeout=action_config["timeout"],
     )
+
 
 async def execute_folder_download(action_data: dict) -> None:
     """Выполняет скачивание папки после подтверждения"""
@@ -296,25 +286,22 @@ async def execute_folder_download(action_data: dict) -> None:
     items = action_data["items"]
 
     try:
-        # Создаем временный архив
         msg = await action_data.get("message")
         if msg:
             await msg.edit_text("📦 Архивация папки...")
 
         zip_path = shutil.make_archive(
-            base_name=os.path.join(tempfile.gettempdir(), f"folder_{time.time()}"), format="zip", root_dir=path
+            base_name=str(Path(tempfile.gettempdir()) / f"folder_{time.time()}"), format="zip", root_dir=path
         )
 
-        # Отправляем архив
-        with open(zip_path, "rb") as zip_file:
+        with Path(zip_path).open("rb") as zip_file:
             await action_data["bot"].send_document(
                 chat_id=action_data["chat_id"],
-                document=BufferedInputFile(zip_file.read(), filename=f"{os.path.basename(path)}.zip"),
+                document=BufferedInputFile(zip_file.read(), filename=f"{Path(path).name}.zip"),
                 caption=f"📁 Папка: {path}\n📊 Размер: {format_size(size)}\n📄 Элементов: {items:,}",
             )
 
-        # Удаляем временный файл
-        os.remove(zip_path)
+        Path(zip_path).unlink()
 
         if msg:
             await msg.delete()

@@ -4,7 +4,7 @@
 Уровни логирования:
 - CRITICAL: ошибки, которые приводят к аварийному завершению работы программы
 - ERROR: ошибки, которые могут повлиять на функциональность, но приложение продолжает работать
-- WARNING: предупреждения о ситуациях, которые могут привести к ошибке в будущем, но не влияют на текущую работу программы
+- WARNING: предупреждения, которые могут привести к ошибке в будущем, но не влияют на текущую работу программы
 - INFO: обычная информация о работе программы, которая помогает понять его функционирование
 - DEBUG: подробная информация для отладки, полезная разработчикам при поиске и устранении ошибок
 - TRACE: подробный уровень, записывающий всю информацию о выполнении, включая детали о вызовах методов и потоках
@@ -68,7 +68,7 @@ class LoggingSystem:
         file_handler.setFormatter(formatter)
 
         logger.addHandler(file_handler)
-        
+
         logger.addHandler(self.centralized_handler)
 
         logger.propagate = False
@@ -113,7 +113,7 @@ class LoggingSystem:
             logger.log(5, message, **kwargs)
 
     def trace_function_entry(
-        self, function_name: str, args: tuple = None, kwargs: dict = None, logger_name: str = "main"
+        self, function_name: str, args: tuple | None = None, kwargs: dict | None = None, logger_name: str = "main"
     ):
         """Логирование входа в функцию для уровня TRACE."""
         args_str = f"args={args}" if args else ""
@@ -123,7 +123,7 @@ class LoggingSystem:
         message = f"ENTER: {function_name}({params})"
         self.trace(message, logger_name)
 
-    def trace_function_exit(self, function_name: str, result: any = None, logger_name: str = "main"):
+    def trace_function_exit(self, function_name: str, result: any | None = None, logger_name: str = "main"):
         """Логирование выхода из функции для уровня TRACE."""
         result_str = f" -> {result}" if result is not None else ""
         message = f"EXIT:  {function_name}{result_str}"
@@ -174,7 +174,9 @@ def init_logging(logs_dir: str = "./logs", log_level: str = "INFO") -> LoggingSy
 
     logging_system.centralized_handler.setLevel(numeric_level)
 
-    logging_system.info(f"Система логирования инициализирована. Уровень: {log_level}, Директория: {logs_path.absolute()}")
+    logging_system.info(
+        f"Система логирования инициализирована. Уровень: {log_level}, Директория: {logs_path.absolute()}"
+    )
 
     return logging_system
 
@@ -219,12 +221,14 @@ def trace(message: str, logger_name: str = "main", **kwargs):
     get_logging_system().trace(message, logger_name, **kwargs)
 
 
-def trace_function_entry(function_name: str, args: tuple = None, kwargs: dict = None, logger_name: str = "main"):
+def trace_function_entry(
+    function_name: str, args: tuple | None = None, kwargs: dict | None = None, logger_name: str = "main"
+):
     """Логирование входа в функцию."""
     get_logging_system().trace_function_entry(function_name, args, kwargs, logger_name)
 
 
-def trace_function_exit(function_name: str, result: any = None, logger_name: str = "main"):
+def trace_function_exit(function_name: str, result: any | None = None, logger_name: str = "main"):
     """Логирование выхода из функции."""
     get_logging_system().trace_function_exit(function_name, result, logger_name)
 
@@ -233,14 +237,17 @@ def trace_step(step: str, logger_name: str = "main"):
     """Логирование шага выполнения."""
     get_logging_system().trace_step(step, logger_name)
 
+
 def log_call(logger_name: str = "main"):
     """
     Декоратор: логирует вход/выход функции на уровне TRACE.
     Применим как к обычным, так и к async функциям.
     """
+
     def decorator(func):
         qualname = getattr(func, "__qualname__", getattr(func, "__name__", "func"))
         if asyncio.iscoroutinefunction(func):
+
             @functools.wraps(func)
             async def async_wrapper(*args, **kwargs):
                 trace_function_entry(qualname, args=args, kwargs=kwargs, logger_name=logger_name)
@@ -248,7 +255,9 @@ def log_call(logger_name: str = "main"):
                     return await func(*args, **kwargs)
                 finally:
                     trace_function_exit(qualname, logger_name=logger_name)
+
             return async_wrapper
+
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
             trace_function_entry(qualname, args=args, kwargs=kwargs, logger_name=logger_name)
@@ -256,5 +265,7 @@ def log_call(logger_name: str = "main"):
                 return func(*args, **kwargs)
             finally:
                 trace_function_exit(qualname, logger_name=logger_name)
+
         return wrapper
+
     return decorator

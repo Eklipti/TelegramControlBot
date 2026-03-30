@@ -21,6 +21,7 @@
 """
 
 import asyncio
+import contextlib
 from typing import Any
 
 from aiogram import Bot
@@ -30,7 +31,6 @@ from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMar
 
 from .logging import debug, error, info, trace, trace_function_entry, trace_function_exit, warning
 
-# Хранилище ожидающих подтверждений
 pending_confirmations: dict[str, dict[str, Any]] = {}
 
 
@@ -38,40 +38,57 @@ class PrivateChatFilter(BaseFilter):
     """Фильтр для разрешения только private чатов"""
 
     async def __call__(self, obj: Message | CallbackQuery) -> bool:
-        trace_function_entry("PrivateChatFilter.__call__", 
-                           args=(type(obj).__name__,), 
-                           kwargs={"user_id": obj.from_user.id if obj.from_user else None},
-                           logger_name="security")
-        
-        # Для сообщений
+        trace_function_entry(
+            "PrivateChatFilter.__call__",
+            args=(type(obj).__name__,),
+            kwargs={"user_id": obj.from_user.id if obj.from_user else None},
+            logger_name="security",
+        )
+
         if isinstance(obj, Message):
             is_private = obj.chat.type == ChatType.PRIVATE
             user_id = obj.from_user.id if obj.from_user else None
             username = obj.from_user.username if obj.from_user else None
-            
+
             if not is_private:
-                warning(f"Попытка доступа из не-private чата {obj.chat.type} от пользователя {user_id} ({username})", "security")
-                trace(f"Детали не-private чата: chat_id={obj.chat.id}, chat_type={obj.chat.type}, user_id={user_id}", "security")
+                warning(
+                    f"Попытка доступа из не-private чата {obj.chat.type} от пользователя {user_id} ({username})",
+                    "security",
+                )
+                trace(
+                    f"Детали не-private чата: chat_id={obj.chat.id}, chat_type={obj.chat.type}, user_id={user_id}",
+                    "security",
+                )
                 trace_function_exit("PrivateChatFilter.__call__", result="not_private_chat", logger_name="security")
             else:
                 trace(f"Доступ из private чата от пользователя {user_id} ({username})", "security")
                 trace_function_exit("PrivateChatFilter.__call__", result="private_chat_allowed", logger_name="security")
             return is_private
-        # Для callback-запросов
+
         if isinstance(obj, CallbackQuery):
             is_private = obj.message and obj.message.chat.type == ChatType.PRIVATE
             user_id = obj.from_user.id if obj.from_user else None
             username = obj.from_user.username if obj.from_user else None
-            
+
             if not is_private:
-                warning(f"Попытка callback из не-private чата {obj.message.chat.type if obj.message else 'no message'} от пользователя {user_id} ({username})", "security")
-                trace(f"Детали не-private callback: chat_id={obj.message.chat.id if obj.message else None}, chat_type={obj.message.chat.type if obj.message else None}, user_id={user_id}", "security")
+                warning(
+                    f"Попытка callback из не-private чата {
+                        obj.message.chat.type if obj.message else 'no message'
+                    } от пользователя {user_id} ({username})",
+                    "security",
+                )
+                trace(
+                    f"Детали не-private callback: chat_id={obj.message.chat.id if obj.message else None}, "
+                    f"chat_type={obj.message.chat.type if obj.message else None}, user_id={user_id}",
+                    "security",
+                )
                 trace_function_exit("PrivateChatFilter.__call__", result="not_private_callback", logger_name="security")
             else:
                 trace(f"Callback из private чата от пользователя {user_id} ({username})", "security")
-                trace_function_exit("PrivateChatFilter.__call__", result="private_callback_allowed", logger_name="security")
+                trace_function_exit(
+                    "PrivateChatFilter.__call__", result="private_callback_allowed", logger_name="security"
+                )
             return is_private
-        # Для других типов возвращаем False
         warning(f"Неизвестный тип объекта для фильтра: {type(obj)}", "security")
         trace_function_exit("PrivateChatFilter.__call__", result="unknown_object_type", logger_name="security")
         return False
@@ -82,6 +99,7 @@ class ConfirmationManager:
 
     def __init__(self, bot: Bot):
         self.bot = bot
+        self._background_tasks = set()
 
     async def create_confirmation(
         self,
@@ -89,13 +107,15 @@ class ConfirmationManager:
         action_type: str,
         action_data: dict[str, Any],
         warning_message: str,
-        timeout: int = 300,  # 5 минут по умолчанию
+        timeout: int = 300,
     ) -> str:
         """Создает подтверждение и возвращает его ID"""
-        trace_function_entry("ConfirmationManager.create_confirmation", 
-                           args=(chat_id, action_type), 
-                           kwargs={"timeout": timeout},
-                           logger_name="security")
+        trace_function_entry(
+            "ConfirmationManager.create_confirmation",
+            args=(chat_id, action_type),
+            kwargs={"timeout": timeout},
+            logger_name="security",
+        )
 
         import uuid
 
@@ -117,7 +137,6 @@ class ConfirmationManager:
             f"⏰ Подтверждение истечет через {timeout // 60} минут"
         )
 
-        # Отправляем сообщение с подтверждением
         try:
             msg = await self.bot.send_message(chat_id=chat_id, text=message_text, reply_markup=keyboard)
             info(f"Сообщение с подтверждением отправлено в чат {chat_id}, message_id: {msg.message_id}", "security")
@@ -126,7 +145,6 @@ class ConfirmationManager:
             trace_function_exit("ConfirmationManager.create_confirmation", result=f"error: {e}", logger_name="security")
             raise
 
-        # Сохраняем данные подтверждения
         pending_confirmations[confirmation_id] = {
             "action_type": action_type,
             "action_data": action_data,
@@ -138,8 +156,10 @@ class ConfirmationManager:
         }
         debug(f"Подтверждение {confirmation_id} сохранено в pending_confirmations", "security")
 
-        # Автоматическая отмена через timeout
-        asyncio.create_task(self._auto_cancel(confirmation_id, timeout))
+        task = asyncio.create_task(self._auto_cancel(confirmation_id, timeout))
+        self._background_tasks.add(task)
+        task.add_done_callback(self._background_tasks.discard)
+
         trace(f"Задача автоматической отмены создана для подтверждения {confirmation_id}", "security")
 
         trace_function_exit("ConfirmationManager.create_confirmation", result=confirmation_id, logger_name="security")
@@ -173,40 +193,32 @@ class ConfirmationManager:
 
         confirmation = pending_confirmations[confirmation_id]
 
-        # Проверяем, что callback от правильного пользователя
         if callback.from_user.id != confirmation["chat_id"]:
             await callback.answer("Это не ваше подтверждение", show_alert=True)
             return None
 
-        # Удаляем подтверждение
         action_data = confirmation["action_data"].copy()
         pending_confirmations.pop(confirmation_id, None)
 
         if action == "confirm":
             await callback.answer("✅ Действие подтверждено")
-            try:
+            with contextlib.suppress(Exception):
                 await self.bot.edit_message_text(
                     chat_id=confirmation["chat_id"],
                     message_id=confirmation["message_id"],
                     text=f"✅ <b>Действие подтверждено</b>\n\n{confirmation['warning_message']}",
                 )
-            except Exception:
-                pass
             return action_data
-        # cancel
         await callback.answer("❌ Действие отменено")
-        try:
+        with contextlib.suppress(Exception):
             await self.bot.edit_message_text(
                 chat_id=confirmation["chat_id"],
                 message_id=confirmation["message_id"],
                 text="❌ <b>Действие отменено</b>",
             )
-        except Exception:
-            pass
         return None
 
 
-# Определения опасных действий
 DANGEROUS_ACTIONS = {
     "reload": {
         "warning": "🔄 <b>ПЕРЕЗАГРУЗКА СИСТЕМЫ</b>\n\n"
@@ -215,7 +227,7 @@ DANGEROUS_ACTIONS = {
         "• Все запущенные программы закроются\n"
         "• RDP-сессии будут прерваны\n\n"
         "Убедитесь, что все важные данные сохранены!",
-        "timeout": 120,  # 2 минуты для перезагрузки
+        "timeout": 120,
     },
     "file_delete": {
         "warning": "🗑️ <b>УДАЛЕНИЕ ФАЙЛА</b>\n\n"
@@ -269,16 +281,15 @@ DANGEROUS_ACTIONS = {
         "timeout": 120,
     },
     "file_cut": {
-            "warning": "✂️ <b>СКАЧАТЬ И УДАЛИТЬ ФАЙЛ</b>\n\n"
-            "Файл будет отправлен вам, а затем <b>безвозвратно удален</b> с компьютера!\n"
-            "• Восстановление будет невозможно\n\n"
-            "Действие: {action_data}",
-            "timeout": 60,
+        "warning": "✂️ <b>СКАЧАТЬ И УДАЛИТЬ ФАЙЛ</b>\n\n"
+        "Файл будет отправлен вам, а затем <b>безвозвратно удален</b> с компьютера!\n"
+        "• Восстановление будет невозможно\n\n"
+        "Действие: {action_data}",
+        "timeout": 60,
     },
 }
 
 
-# Глобальный менеджер подтверждений
 confirmation_manager: ConfirmationManager | None = None
 
 
