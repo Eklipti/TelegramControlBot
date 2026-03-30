@@ -30,5 +30,6 @@ logs/
 *.log.*
 
 # User-specific paths and data
+data/
 jsons/
 exports/
